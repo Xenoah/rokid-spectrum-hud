@@ -1,0 +1,29 @@
+name: Publish archived prerelease
+
+on:
+  push:
+    branches: [main]
+    paths: ['.release/current.json']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: archived-prerelease
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.repository == 'Xenoah/rokid-spectrum-hud'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the exact version commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Verify files and publish a prerelease
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 tools/publish_prerelease.py

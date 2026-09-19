@@ -1,0 +1,29 @@
+PASS radix-2 FFT vs independent complex DFT
+PASS FFT rejects non-power-of-two sizes
+PASS half-scale bin-centred sine calibration at 48000
+PASS half-scale bin-centred sine calibration at 44100
+PASS half-scale bin-centred sine calibration at 32000
+PASS half-scale bin-centred sine calibration at 16000
+PASS off-bin frequency 40.0 Hz
+PASS off-bin frequency 55.0 Hz
+PASS off-bin frequency 100.0 Hz
+PASS off-bin frequency 440.0 Hz
+PASS off-bin frequency 1000.0 Hz
+PASS off-bin frequency 3955.0 Hz
+PASS off-bin frequency 10000.0 Hz
+PASS off-bin frequency 19000.0 Hz
+PASS all-zero input is finite, silent, has no dominant frequency
+PASS DC removed from spectrum and AC RMS
+PASS full-scale PCM detects clipping
+PASS chunk boundaries do not affect output
+PASS dominant is strongest component, not assumed fundamental
+PASS Hann suppresses distant leakage
+PASS peak hold decays and can be reset
+PASS waveform remains within PCM bounds and spans 12 ms
+PASS snapshot does not alias producer arrays
+PASS waterfall ring wrap and sample-rate reset
+PASS auto display scale cannot alter measured dBFS
+PASS skipped UI frames leave gaps, not a stretched waterfall time axis
+PASS invalid sample-rate and input counts fail explicitly
+RESULT 27 tests passed
+PASS shared-code rendering / 12 UI states / 198 text bounds checks / 480x400 and 480x640

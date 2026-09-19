@@ -1,0 +1,1 @@
+PASS ZIP CRC; valid DEX header; 17 classes; launcher and DSP included; no native libraries; no third-party runtime references.

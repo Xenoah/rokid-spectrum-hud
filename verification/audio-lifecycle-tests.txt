@@ -1,0 +1,11 @@
+PASS real engine delivers PCM-derived FFT snapshots
+PASS unsupported RAW falls back to VOICE
+PASS all-zero RAW stream falls back without showing fake LIVE
+PASS sample-rate fallback adapts the plotted Nyquist limit
+PASS short AudioRecord reads accumulate correctly
+PASS permission denial becomes an actionable state
+PASS Android-silenced capture is reported explicitly
+PASS dead input returns MIC ERROR after candidate exhaustion
+PASS rapid pause/restart never opens simultaneous recorders
+PASS DEMO uses generated samples with zero microphone opens
+RESULT 10 audio lifecycle tests passed (framework doubles; not device execution)
