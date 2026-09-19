@@ -1,22 +1,24 @@
+[0.001s][warning][perf,memops] Cannot use file /tmp/hsperfdata_root/6 because it is locked by another process (errno = 11)
 PASS real engine delivers PCM-derived FFT snapshots
 PASS unsupported MIC falls back to VOICE
 PASS all-zero MIC stream falls back without showing fake LIVE
 PASS sample-rate fallback adapts the plotted Nyquist limit
 PASS short AudioRecord reads accumulate correctly
 PASS permission denial becomes an actionable state
-PASS Android-silenced capture is reported, even when queued PCM is nonzero
+PASS Android-silenced capture waits even when queued PCM is nonzero
 PASS dead input returns MIC ERROR after candidate exhaustion
 PASS rapid pause/restart never opens simultaneous recorders
 PASS DEMO uses generated samples with zero microphone opens
-PASS API 30 private-capture request survives competing shared input
-PASS regression: initially live MIC later silenced switches to another source
+PASS API 30 explicitly permits sharing without exclusive capture
+PASS assistant priority mid-stream waits and resumes on the same input
 PASS regression: initially live MIC later all-zero also switches
-PASS busy retry holds a supported input and recovers automatically
-PASS all-busy AUTO finishes its scan and stops reopening
+PASS assistant already active at launch can finish without a retry tap
+PASS all-busy AUTO holds its first non-private input without scanning
 PASS system mute is respected before microphone creation
 PASS system mute during capture resumes without changing settings
-PASS Android 10 uses CAM privacy default without calling API 30
+PASS Android 10 never falls back to exclusive CAM capture
 PASS Android 8 does not invoke newer policy APIs
 PASS call mode gives a distinct diagnostic without changing mode
-PASS CAM is manually selectable and captures microphone samples
-RESULT 21 audio lifecycle tests passed (framework doubles; not device execution)
+PASS legacy CAM selection safely resolves to non-private AUTO
+PASS all selectable real inputs allow sharing and preserve audio preprocessing
+RESULT 22 audio lifecycle tests passed (framework doubles; not device execution)

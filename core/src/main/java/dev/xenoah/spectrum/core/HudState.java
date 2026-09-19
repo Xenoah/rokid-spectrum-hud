@@ -5,7 +5,7 @@ import java.util.Arrays;
 /** UI-thread state shared by the Android view and offline renderer. */
 public final class HudState {
     public static final String[] MODES = {"SPECTRUM", "WATERFALL", "WAVEFORM"};
-    public static final String[] INPUTS = {"AUTO", "RAW", "VOICE", "MIC", "DEMO", "CAM"};
+    public static final String[] INPUTS = {"AUTO", "RAW", "VOICE", "MIC", "DEMO"};
     public static final String[] LEVELS = {"AUTO", "0 dBFS", "-20 dBFS", "-40 dBFS"};
     public static final int HISTORY = 100, MENU_ITEMS = 8;
     public final SpectrumFrame frame = new SpectrumFrame();
@@ -18,6 +18,9 @@ public final class HudState {
     private long lastSequence;
 
     public HudState() { clearHistory(); }
+
+    /** Preserve existing modes; v1.0.1's private CAM mode becomes AUTO. */
+    public static int restoreInput(int stored) { return stored >= 0 && stored < INPUTS.length ? stored : 0; }
 
     public void clearHistory() {
         for (float[] row : history) Arrays.fill(row, -120);

@@ -10,3 +10,15 @@ User-provided Rokid Glasses screen photos, published unchanged. Version and obse
 ## v1.0.0-mic-busy.jpg
 
 ![Actual device issue report — v1.0.0-mic-busy.jpg](v1.0.0-mic-busy.jpg)
+
+## v1.0.2-waiting-waterfall.jpg
+
+![Actual device issue report — v1.0.2-waiting-waterfall.jpg](v1.0.2-waiting-waterfall.jpg)
+
+## v1.0.2-waiting-spectrum.jpg
+
+![Actual device issue report — v1.0.2-waiting-spectrum.jpg](v1.0.2-waiting-spectrum.jpg)
+
+## v1.0.2-waiting-waveform.jpg
+
+![Actual device issue report — v1.0.2-waiting-waveform.jpg](v1.0.2-waiting-waveform.jpg)

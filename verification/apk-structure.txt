@@ -1,2 +1,9 @@
-PASS v2 APK signatures; identical signing certificate; unchanged package; versionCode 2; versionName 1.0.1; API 26 minimum; private-capture API included in DEX; ZIP CRC; no Internet permission; no native libraries; no third-party runtime references.
+PASS APK v2 signature verified; same signer as 1.0.1 (in-place update supported)
 Certificate SHA-256: 9909d7a879a5ce5e1f407665222cf03532c3810a295027b88a7b196da1143758
+PASS package dev.xenoah.rokidspectrum, versionCode 3, versionName 1.0.2
+PASS minSdk 26, targetSdk 32, no INTERNET permission, no native ABI dependencies
+PASS ZIP CRC, core/Activity/AudioEngine in DEX, privacy API present, no audiofx/global-mute/audio-focus calls
+PASS 29 DSP/state tests, 22 AudioEngine tests, 12 Activity lifecycle tests
+PASS shared renderer: 16 UI states, 248 text bounds checks; waiting/help/HOLD visually inspected
+Framework doubles and Java2D renderer only; no emulator or Rokid microphone/assistant execution
+APK SHA-256: ed1be16c488e0e64bb66900acfdc8f1ba9a8edca05803b5ce65c5f7e77713e9a

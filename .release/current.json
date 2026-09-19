@@ -1,17 +1,29 @@
 {
-  "version": "1.0.1",
-  "title": "v1.0.1 — MIC BUSY対策 / MIC BUSY recovery attempt",
-  "apk": ".release/RokidSpectrum-1.0.1.apk",
-  "apk_sha256": "e4b617dd87dbf2c65ed45f0316b2c331e5fe09203e1dfcdf2f73549e2ad60995",
+  "version": "1.0.2",
+  "title": "v1.0.2 — アシスタント併用への変更 / Non-private capture for assistant coexistence",
+  "apk": ".release/RokidSpectrum-1.0.2.apk",
+  "apk_sha256": "ed1be16c488e0e64bb66900acfdc8f1ba9a8edca05803b5ce65c5f7e77713e9a",
   "images": [
     {
       "path": "verification/renders/RokidSpectrum-preview.png",
-      "name": "RokidSpectrum-1.0.1-demo-preview.png"
+      "name": "RokidSpectrum-1.0.2-demo-preview.png"
     },
     {
-      "path": "verification/renders/retrying.png",
-      "name": "RokidSpectrum-1.0.1-input-state-preview.png"
+      "path": "verification/renders/waiting.png",
+      "name": "RokidSpectrum-1.0.2-input-state-preview.png"
+    },
+    {
+      "path": "docs/screenshots/v1.0.2-waiting-spectrum.jpg",
+      "name": "RokidSpectrum-1.0.2-device-waiting-spectrum.jpg"
+    },
+    {
+      "path": "docs/screenshots/v1.0.2-waiting-waterfall.jpg",
+      "name": "RokidSpectrum-1.0.2-device-waiting-waterfall.jpg"
+    },
+    {
+      "path": "docs/screenshots/v1.0.2-waiting-waveform.jpg",
+      "name": "RokidSpectrum-1.0.2-device-waiting-waveform.jpg"
     }
   ],
-  "version_code": 2
+  "version_code": 3
 }

@@ -1,24 +1,25 @@
 > **非公式・非提携**：本プロジェクトは個人による非公式の開発です。Rokid社およびその関連会社とは提携しておらず、承認・支援・スポンサー提供を受けていません。
 > **Unofficial and unaffiliated**: This is an independent, unofficial project. It is not affiliated with, endorsed, supported, or sponsored by Rokid or its affiliates.
 
-# Rokid Spectrum HUD — v1.0.1
+# Rokid Spectrum HUD — v1.0.2
 
 **プレリリース / Pre-release** · Android 8.0+ (API 26+) · Java · MIT
 
 Rokid Glasses向けに開発している、マイク入力のオーディオスペクトルアナライザです。黒背景に緑単色のHUDを表示します。
 An experimental microphone audio spectrum analyzer for Rokid Glasses, with a green-on-black HUD.
 
-[v1.0.1のAPK・ソース / APK and source](https://github.com/Xenoah/rokid-spectrum-hud/releases/tag/v1.0.1) · [全プレリリース / All prereleases](https://github.com/Xenoah/rokid-spectrum-hud/releases) · [日本語の詳細](README-ja.md)
+[v1.0.2のAPK・ソース / APK and source](https://github.com/Xenoah/rokid-spectrum-hud/releases/tag/v1.0.2) · [全プレリリース / All prereleases](https://github.com/Xenoah/rokid-spectrum-hud/releases) · [日本語の詳細](README-ja.md)
 
 ## 日本語
 
-### この版の変更 — MIC BUSY対策
+### この版の変更 — アシスタント併用への変更
 
-- AUTOの最初の入力をMICにし、VOICE、対応時のRAW、CAM、DEFAULTも検査。
-- 録音開始後の無音化にも入力切り替えを適用し、ミュート・入力方式・レートを診断表示。
-- Android 11以降でsetPrivacySensitive(true)を要求し、INPUT: CAMを追加。
+- Android 11以降でsetPrivacySensitive(false)へ変更し、排他的なCAM／COMM入力を避ける構成へ移行。
+- フォーカス喪失やActivity一時停止でマイクを解放し、戻ると再開。ユーザーが選んだHOLDは維持。
+- 音声前処理を変更せず、アシスタント・ヘッドセット・メディアキーをシステムへ渡す。
+- OSが入力を無音化した場合はWAITINGを表示し、同じ入力で復帰を待つ。
 
-**確認状況・制限:** この版の排他的なマイク設定は、アシスタントとの同時利用を妨げる可能性があります。修正過程を残すための過去版です。実機でMIC BUSYが解消した確認はありません。併用向けの設定変更は1.0.2以降です。
+**確認状況・制限:** 実機の写真・動画ではMIC / 48000 Hz / NONPRIVATEのままWAITINGが継続し、解析が始まりませんでした。この版には待機時間の上限がなく、入力が戻らない場合に進めない問題があります。実音解析とアシスタント併用の成功は確認できていません。
 
 ### 機能と使い方
 
@@ -27,10 +28,10 @@ An experimental microphone audio spectrum analyzer for Rokid Glasses, with a gre
 - DEMOは合成信号です。**dBFSは校正済みのdB SPL／dBAではありません。**
 - HUDは480 × 400を中央配置。Rokid SDKやGoogle Playサービスへの依存はありません。機種・ファームウェアの差は未検証です。
 
-下のAssetsから`RokidSpectrum-1.0.1.apk`を入手し、APKを導入できる端末にインストールしてください。初回はマイク権限を許可します。
+下のAssetsから`RokidSpectrum-1.0.2.apk`を入手し、APKを導入できる端末にインストールしてください。初回はマイク権限を許可します。
 
 ```sh
-adb install -r -g RokidSpectrum-1.0.1.apk
+adb install -r -g RokidSpectrum-1.0.2.apk
 adb shell am start -n dev.xenoah.rokidspectrum/dev.xenoah.spectrum.MainActivity
 ```
 
@@ -47,7 +48,7 @@ adb shell am start -n dev.xenoah.rokidspectrum/dev.xenoah.spectrum.MainActivity
 
 ### 検証とビルド
 
-保存済みの検証結果は数値・状態処理28件、AudioEngine 21件、Activity 0件、描画14状態／文字境界228件です。
+保存済みの検証結果は数値・状態処理29件、AudioEngine 22件、Activity 12件、描画16状態／文字境界248件です。
 Android APIの代替実装とJava2Dによる検証であり、実機での測定保証ではありません。APKの構造・署名・バージョンも確認しています。詳細は[verification/](verification/)。
 
 JDK 17、Python 3、Android SDKを用意し、以下のSDK直接ビルドを利用できます。Gradle構成（AGP 8.9.2、Gradle 8.11.1、compileSdk 35）も付属しますが、配布APKは直接ビルドで生成しました。
@@ -58,17 +59,19 @@ export ANDROID_BUILD_TOOLS=/path/to/android-sdk/build-tools/35.0.0
 python3 tools/build_apk.py
 python3 tools/test_core.py
 python3 tools/test_audio_lifecycle.py
+python3 tools/test_activity_lifecycle.py
 ```
 
 ## English
 
-### Changes in this version — MIC BUSY recovery attempt
+### Changes in this version — Non-private capture for assistant coexistence
 
-- Tries MIC first in AUTO, followed by VOICE, supported RAW, CAM and DEFAULT.
-- Extends recovery to streams silenced after capture starts and adds mute/source/rate diagnostics.
-- Requests setPrivacySensitive(true) on Android 11+ and adds the CAM input option.
+- Switches to setPrivacySensitive(false) on Android 11+ and avoids private CAM/COMM capture.
+- Releases the microphone on focus loss or Activity pause, resumes on return and preserves user-selected HOLD.
+- Leaves audio preprocessing unchanged and passes assistant, headset and media keys through.
+- Shows WAITING while Android silences the stream and waits on the same input for recovery.
 
-**Status and limitations:** This version requests private capture, which can interfere with simultaneous assistant use. It is published as a historical development step; recovery on the physical device was not confirmed. Non-private capture is introduced in 1.0.2.
+**Status and limitations:** Device photos and video show persistent WAITING on MIC / 48000 Hz / NONPRIVATE without starting analysis. This version can wait indefinitely when input never recovers. Successful live analysis and assistant coexistence have not been confirmed.
 
 ### Features and usage
 
@@ -77,7 +80,7 @@ python3 tools/test_audio_lifecycle.py
 - DEMO uses generated signals. **dBFS is not calibrated dB SPL or dBA.**
 - The 480 × 400 HUD is centered on the display. No Rokid SDK or Google Play services are required. Device and firmware variations remain unverified.
 
-Download `RokidSpectrum-1.0.1.apk` from this version's release Assets, install it on a device that accepts sideloaded APKs and grant microphone permission. The ADB commands above install and launch it. Updates to a higher versionCode use the same original development signing certificate. A locally generated key cannot update the distributed APK.
+Download `RokidSpectrum-1.0.2.apk` from this version's release Assets, install it on a device that accepts sideloaded APKs and grant microphone permission. The ADB commands above install and launch it. Updates to a higher versionCode use the same original development signing certificate. A locally generated key cannot update the distributed APK.
 
 | Control | Action |
 | --- | --- |
@@ -90,26 +93,26 @@ Download `RokidSpectrum-1.0.1.apk` from this version's release Assets, install i
 
 ### Verification and building
 
-Archived results cover 28 numerical/state tests, 21 AudioEngine tests, 0 Activity tests and 14 render states with 228 text-bound checks. These use Android framework doubles and Java2D, not physical-device measurement. APK structure, signing and version metadata have also been checked. See [verification/](verification/).
+Archived results cover 29 numerical/state tests, 22 AudioEngine tests, 12 Activity tests and 16 render states with 248 text-bound checks. These use Android framework doubles and Java2D, not physical-device measurement. APK structure, signing and version metadata have also been checked. See [verification/](verification/).
 
 The commands above perform an SDK-direct build with JDK 17, Python 3 and Android SDK tools. The included Gradle project targets AGP 8.9.2 / Gradle 8.11.1 / compileSdk 35; that build route was not used for the distributed APK. Minimum SDK is 26 and target SDK is 32. Signing keys are excluded. `SPECTRUM_KEYSTORE` and `SPECTRUM_STOREPASS` can select a local key; the build creates a new development key if none exists.
 
 ### 画面 / Screenshots
 
-以下はv1.0.1の共有Java描画コードによる**合成入力のDEMOプレビュー**です。実機やエミュレータのスクリーンショット、実音測定の証拠ではありません。
+以下はv1.0.2の共有Java描画コードによる**合成入力のDEMOプレビュー**です。実機やエミュレータのスクリーンショット、実音測定の証拠ではありません。
 These are **synthetic DEMO previews** rendered with this version's shared Java renderer, not device/emulator screenshots or evidence of live capture.
 
 ![Spectrum, waterfall and waveform — synthetic DEMO](verification/renders/RokidSpectrum-preview.png)
 
 入力状態の描画例 / Input-state rendering preview:
 
-![Input-state preview, v1.0.1](verification/renders/retrying.png)
+![Input-state preview, v1.0.2](verification/renders/waiting.png)
 
-**実機の不具合記録 / Actual device issue report — v1.0.0, MIC BUSY.**
-この写真はv1.0.0の報告です。現在の版の成功例ではありません。
-This photo documents the issue in v1.0.0; it does not demonstrate successful microphone analysis in v1.0.1.
+**実機の不具合記録 / Actual device issue report — v1.0.2, WAITING.**
+この写真はv1.0.2の報告です。解析開始の成功例ではありません。
+This photo documents the issue in v1.0.2; it does not demonstrate successful microphone analysis in v1.0.2.
 
-<img src="docs/screenshots/v1.0.0-mic-busy.jpg" alt="Actual Rokid device report: v1.0.0 MIC BUSY" width="440">
+<img src="docs/screenshots/v1.0.2-waiting-spectrum.jpg" alt="Actual Rokid device report: v1.0.2 WAITING" width="440">
 
 [実機写真一覧 / Device screenshots](docs/screenshots/README.md)
 
@@ -123,6 +126,7 @@ Application source and signed APKs are preserved from each archived version. Bil
 | --- | --- | --- |
 | [v1.0.0](https://github.com/Xenoah/rokid-spectrum-hud/releases/tag/v1.0.0) | 初版：3つの解析表示 / Initial spectrum HUD | Pre-release |
 | [v1.0.1](https://github.com/Xenoah/rokid-spectrum-hud/releases/tag/v1.0.1) | MIC BUSY対策 / MIC BUSY recovery attempt | Pre-release |
+| [v1.0.2](https://github.com/Xenoah/rokid-spectrum-hud/releases/tag/v1.0.2) | アシスタント併用への変更 / Non-private capture for assistant coexistence | Pre-release |
 
 ## 公開ファイル / Release assets
 

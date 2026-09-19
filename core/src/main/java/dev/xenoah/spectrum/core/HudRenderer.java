@@ -55,18 +55,30 @@ public final class HudRenderer {
     }
 
     private void message(Surface s, HudState h) {
+        if (h.frozen) {
+            s.text("HOLD", 24, 151, 24, 255, true);
+            s.text("Microphone is released.", 24, 190, 15, 220, false);
+            s.text("Tap to resume when you are ready.", 24, 228, 15, 220, false);
+            return;
+        }
         s.text(h.status.equals("PERMISSION") ? "MICROPHONE ACCESS" : h.status, 24, 151, 24, 255, true);
         if (h.status.equals("PERMISSION")) {
             s.text("Allow microphone access to analyze sound.", 24, 185, 15, 220, false);
             s.text("Tap to request permission / open settings.", 24, 211, 15, 220, false);
             s.text("No audio is saved or sent.", 24, 253, 14, 170, false);
-        } else if (h.status.equals("MIC ERROR") || h.status.equals("NO SIGNAL") || h.status.equals("MIC BUSY") || h.status.equals("MIC MUTED")) {
+        } else if (h.status.equals("WAITING")) {
+            s.text(h.detail, 24, 184, 14, 220, false);
+            s.text("Analyzer resumes when the mic is available.", 24, 220, 14, 230, false);
+            s.text("You can keep the assistant enabled.", 24, 249, 14, 200, false);
+            s.text("Tap HOLD to pause. BACK opens settings.", 24, 278, 14, 170, false);
+            s.text(h.diagnostic, 24, 313, 13, 220, false);
+        } else if (h.status.equals("MIC ERROR") || h.status.equals("NO SIGNAL") || h.status.equals("MIC MUTED")) {
             s.text(h.detail, 24, 184, 14, 220, false);
             s.text("Tap to retry. BACK opens input settings.", 24, 213, 15, 220, false);
-            s.text(h.status.equals("MIC MUTED") ? "Enable the mic in your device settings." : "Close voice / video recording apps.", 24, 249, 14, 200, false);
-            s.text("AUTO retries. INPUT: CAM is also available.", 24, 275, 14, 170, false);
+            s.text(h.status.equals("MIC MUTED") ? "Enable the mic in your device settings." : "Use INPUT: AUTO, MIC or VOICE.", 24, 249, 14, 200, false);
+            s.text("Assistant sharing depends on device policy.", 24, 275, 14, 170, false);
             s.text(h.diagnostic, 24, 308, 13, 220, false);
-            s.text("v1.0.1 / BACK > HELP for input details", 24, 337, 12, 170, false);
+            s.text("v1.0.2 / BACK > HELP for input details", 24, 337, 12, 170, false);
         } else {
             s.text(h.detail, 24, 191, 15, 220, false);
             s.text("Sound is processed on this device only.", 24, 236, 14, 170, false);
@@ -162,13 +174,13 @@ public final class HudRenderer {
     }
 
     private void help(Surface s, HudState h) {
-        title(s, "HELP / INPUT", "v1.0.1");
+        title(s, "HELP / INPUT", "v1.0.2");
         String[] lines = {
             "Tap: hold / resume microphone",
             "Swipe: spectrum / waterfall / waveform",
             "Back (double tap): menu / return",
             "Long tap or camera key: clear peaks",
-            "Microphone only. No playback capture.",
+            "Assistant: yield mic, then auto-resume.",
             "dBFS is digital level, NOT sound-pressure dB.",
             "DEMO is synthetic, not a microphone reading.",
             "Source: " + h.source,

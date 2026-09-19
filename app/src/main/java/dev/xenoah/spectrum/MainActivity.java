@@ -20,13 +20,13 @@ public final class MainActivity extends Activity {
     private AudioEngine audio;
     private HudView hud;
     private SharedPreferences prefs;
-    private boolean resumed, requesting;
+    private boolean resumed, focused, requesting, capturing;
 
     @Override public void onCreate(Bundle saved) {
         super.onCreate(saved);
         prefs = getSharedPreferences("spectrum", MODE_PRIVATE);
         state.mode = bounded(prefs.getInt("mode", 0), 3);
-        state.input = bounded(prefs.getInt("input", 0), HudState.INPUTS.length);
+        state.input = HudState.restoreInput(prefs.getInt("input", 0));
         state.level = bounded(prefs.getInt("level", 0), 4);
         audio = new AudioEngine(this);
         hud = new HudView(this, state, this);
@@ -40,12 +40,13 @@ public final class MainActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume(); resumed = true; immersive(); hud.startUpdates();
-        if (!state.frozen) startInput();
+        focused = hasWindowFocus();
+        syncInput(false);
     }
 
     @Override protected void onPause() {
         resumed = false;
-        if (audio != null) audio.stop();
+        stopInput();
         if (hud != null) hud.stopUpdates();
         super.onPause();
     }
@@ -57,7 +58,12 @@ public final class MainActivity extends Activity {
 
     @Override public void onWindowFocusChanged(boolean focus) {
         super.onWindowFocusChanged(focus);
-        if (focus && hud != null) immersive();
+        focused = focus;
+        if (hud == null) return;
+        if (focus) immersive();
+        // Assistant overlays may take focus without pausing this Activity.
+        // Release capture for those overlays, and resume only if the user did not select HOLD.
+        syncInput(false);
     }
 
     private void immersive() {
@@ -69,22 +75,41 @@ public final class MainActivity extends Activity {
 
     private boolean allowed() { return checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED; }
 
-    private void startInput() {
-        if (!resumed || state.frozen) return;
-        audio.stop(); state.haveFrame = false; state.clearHistory();
+    private void stopInput() {
+        if (audio != null) audio.stop();
+        capturing = false;
+    }
+
+    private void startInput() { syncInput(true); }
+
+    private void syncInput(boolean restart) {
+        if (!resumed || !focused || state.frozen || requesting) {
+            stopInput();
+            if (resumed && !focused && !state.frozen && !requesting) {
+                state.status = "WAITING"; state.detail = "Assistant / another window is active.";
+                state.haveFrame = false; state.source = ""; state.diagnostic = "Microphone released. Return to resume.";
+                hud.invalidate();
+            }
+            return;
+        }
+        if (capturing && !restart) return;
+        stopInput(); state.haveFrame = false; state.clearHistory();
+        state.source = ""; state.diagnostic = "";
         if (state.input != 4 && !allowed()) {
             state.status = "PERMISSION"; state.detail = "Microphone permission is required."; state.source = "";
             if (!prefs.getBoolean("askedMic", false) && !requesting) {
-                hud.post(new Runnable() { @Override public void run() { if (resumed && !allowed() && !requesting) requestMic(); } });
+                hud.post(new Runnable() { @Override public void run() {
+                    if (resumed && focused && !state.frozen && state.input != 4 && !allowed() && !requesting) requestMic();
+                } });
             }
             hud.invalidate(); return;
         }
         state.status = "STARTING"; state.detail = state.input == 4 ? "Preparing generated test signal..." : "Opening microphone...";
-        audio.start(state.input); hud.invalidate();
+        audio.start(state.input); capturing = true; hud.invalidate();
     }
 
     private void requestMic() {
-        if (requesting || !resumed) return;
+        if (requesting || !resumed || !focused) return;
         boolean previouslyAsked = prefs.getBoolean("askedMic", false);
         if (previouslyAsked && !shouldShowRequestPermissionRationale(Manifest.permission.RECORD_AUDIO)) {
             try {
@@ -92,7 +117,7 @@ public final class MainActivity extends Activity {
                 return;
             } catch (RuntimeException ignored) { }
         }
-        requesting = true; prefs.edit().putBoolean("askedMic", true).apply();
+        stopInput(); requesting = true; prefs.edit().putBoolean("askedMic", true).apply();
         try { requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO}, MIC_PERMISSION); }
         catch (RuntimeException unavailable) { requesting = false; state.status = "PERMISSION"; hud.invalidate(); }
     }
@@ -101,7 +126,7 @@ public final class MainActivity extends Activity {
         super.onRequestPermissionsResult(code, permissions, results);
         if (code != MIC_PERMISSION) return;
         requesting = false;
-        if (allowed()) { if (resumed && !state.frozen) startInput(); }
+        if (allowed()) syncInput(false);
         else { state.status = "PERMISSION"; state.detail = "Microphone permission is required."; hud.invalidate(); }
     }
 
@@ -111,9 +136,9 @@ public final class MainActivity extends Activity {
         if (state.help) { state.help = false; hud.invalidate(); return; }
         if (state.menu) { activateMenu(); return; }
         if (state.status.equals("PERMISSION")) { if (allowed()) startInput(); else requestMic(); return; }
-        if (state.status.equals("MIC ERROR") || state.status.equals("NO SIGNAL") || state.status.equals("MIC BUSY") || state.status.equals("MIC MUTED")) { startInput(); return; }
+        if (state.status.equals("MIC ERROR") || state.status.equals("NO SIGNAL") || state.status.equals("MIC MUTED")) { startInput(); return; }
         state.frozen = !state.frozen;
-        if (state.frozen) audio.stop(); else startInput();
+        if (state.frozen) stopInput(); else startInput();
         hud.invalidate();
     }
 
@@ -176,7 +201,7 @@ public final class MainActivity extends Activity {
         boolean down = event.getAction() == KeyEvent.ACTION_DOWN, up = event.getAction() == KeyEvent.ACTION_UP;
         switch (code) {
             case KeyEvent.KEYCODE_ENTER: case KeyEvent.KEYCODE_DPAD_CENTER:
-            case KeyEvent.KEYCODE_SPACE: case KeyEvent.KEYCODE_HEADSETHOOK: case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
+            case KeyEvent.KEYCODE_SPACE:
                 if (up && !event.isCanceled()) {
                     if (event.getEventTime() - event.getDownTime() >= 650) clearPeaks(); else tap();
                 }

@@ -36,13 +36,16 @@ public final class RenderPreview implements HudRenderer.Surface {
         }
         for(int mode=0;mode<3;mode++){h.mode=mode;render(h,folder,HudState.MODES[mode].toLowerCase());}
         h.mode=0;h.menu=true;h.menuIndex=3;render(h,folder,"menu");h.help=true;render(h,folder,"help");h.help=false;h.menu=false;
-        for(String status:new String[]{"STARTING","PERMISSION","MIC ERROR","NO SIGNAL","MIC BUSY","MIC MUTED","RETRYING"}){
-            h.status=status;h.diagnostic="MIC / 48000 Hz / PRIVATE";
-            h.detail=status.equals("MIC BUSY")?"Android input policy is muting the mic.":status.equals("MIC MUTED")?"Microphone is muted in system settings.":"Digital silence. Check mic privacy / input.";
+        for(String status:new String[]{"STARTING","PERMISSION","MIC ERROR","NO SIGNAL","WAITING","MIC MUTED","RETRYING"}){
+            h.status=status;h.diagnostic="MIC / 48000 Hz / NONPRIVATE";
+            h.detail=status.equals("WAITING")?"Assistant / another app has mic priority.":status.equals("MIC MUTED")?"Microphone is muted in system settings.":"Digital silence. Check mic privacy / input.";
             render(h,folder,status.toLowerCase().replace(' ','-'));
         }
-        h.status="LIVE";h.source="VOICE / PRIVATE";render(h,folder,"source-label");
+        h.status="WAITING";h.detail="Assistant / another window is active.";
+        h.diagnostic="Microphone released. Return to resume.";render(h,folder,"assistant-overlay");
+        h.status="LIVE";h.source="VOICE / NONPRIVATE";render(h,folder,"source-label");
         h.frozen=true;render(h,folder,"hold");h.frozen=false;
+        h.status="WAITING";h.haveFrame=false;h.frozen=true;render(h,folder,"hold-before-input");h.frozen=false;
         // Preview sheet: same renderer, synthetic data, no physical-device claim.
         BufferedImage sheet=new BufferedImage(1440,452,BufferedImage.TYPE_INT_RGB);Graphics2D sg=sheet.createGraphics();
         sg.setColor(new Color(14,19,15));sg.fillRect(0,0,1440,452);
@@ -52,6 +55,6 @@ public final class RenderPreview implements HudRenderer.Surface {
         ImageIO.write(sheet,"png",new File(folder,"RokidSpectrum-preview.png"));sg.dispose();
         BufferedImage portrait=new BufferedImage(480,640,BufferedImage.TYPE_INT_RGB);Graphics2D pg=portrait.createGraphics();
         pg.drawImage(ImageIO.read(new File(folder,"spectrum.png")),0,120,null);pg.dispose();ImageIO.write(portrait,"png",new File(folder,"safe-area-480x640.png"));
-        System.out.println("PASS shared-code rendering / 14 UI states / "+checked+" text bounds checks / 480x400 and 480x640");
+        System.out.println("PASS shared-code rendering / 16 UI states / "+checked+" text bounds checks / 480x400 and 480x640");
     }
 }

@@ -25,5 +25,7 @@ PASS waterfall ring wrap and sample-rate reset
 PASS auto display scale cannot alter measured dBFS
 PASS skipped UI frames leave gaps, not a stretched waterfall time axis
 PASS input recovery discards previous waterfall timing
+PASS legacy CAM preference migrates to AUTO without selecting DEMO
 PASS invalid sample-rate and input counts fail explicitly
-RESULT 28 tests passed
+RESULT 29 tests passed
+PASS shared-code rendering / 16 UI states / 248 text bounds checks / 480x400 and 480x640

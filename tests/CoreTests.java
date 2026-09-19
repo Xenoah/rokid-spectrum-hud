@@ -134,6 +134,11 @@ public final class CoreTests {
             f.sequence=1;f.bands[0]=-45;h.receive(f);check(h.historyCount==1,"old stream history survived recovery");
             near(h.history[0][0],-45,0,"new stream row");
         });
+        test("legacy CAM preference migrates to AUTO without selecting DEMO", () -> {
+            check(HudState.restoreInput(5)==0,"CAM must become AUTO");
+            for(int i=0;i<5;i++)check(HudState.restoreInput(i)==i,"existing input changed");
+            check(HudState.restoreInput(-1)==0&&HudState.restoreInput(99)==0,"invalid preference");
+        });
         test("invalid sample-rate and input counts fail explicitly", () -> {
             try {new SpectrumAnalyzer(0);throw new AssertionError("rate");}catch(IllegalArgumentException expected){}
             try {new SpectrumAnalyzer(48000).accept(new short[2],3,x->{});throw new AssertionError("count");}catch(IllegalArgumentException expected){}

@@ -7,10 +7,6 @@ import android.media.AudioManager;
 import android.media.AudioRecord;
 import android.media.AudioRecordingConfiguration;
 import android.media.MediaRecorder;
-import android.media.audiofx.AcousticEchoCanceler;
-import android.media.audiofx.AudioEffect;
-import android.media.audiofx.AutomaticGainControl;
-import android.media.audiofx.NoiseSuppressor;
 import android.os.Build;
 import android.os.Process;
 import android.os.SystemClock;
@@ -19,8 +15,6 @@ import android.util.Log;
 import dev.xenoah.spectrum.core.HudState;
 import dev.xenoah.spectrum.core.SpectrumAnalyzer;
 import dev.xenoah.spectrum.core.SpectrumFrame;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -98,22 +92,22 @@ final class AudioEngine {
             }
             if (s.cancelled) return;
             int[] sources = sources(s.input);
-            String failure = "Microphone unavailable. Close other audio apps.";
-            // One scan plus one retry. The retry holds the first working input for policy recovery.
-            // No system process is stopped and audio mode/focus is not changed globally.
+            String failure = "Microphone unavailable. Tap to retry.";
+            // Scan only unsupported / zero-only inputs. Policy-silenced inputs wait in place:
+            // reopening them could compete with the assistant's foreground capture.
             for (int attempt = 0; attempt < sources.length * 2; attempt++) {
                 int sourceCode = sources[attempt % sources.length];
                 if (s.cancelled) return;
                 AudioRecord record = null;
-                List<AudioEffect> effects = new ArrayList<>();
                 try {
                     record = open(s, sourceCode);
                     if (record == null) continue;
                     if (s.cancelled) return;
-                    disableEffects(record.getAudioSessionId(), effects);
-                    String label = sourceName(sourceCode) + (isPrivate(record, sourceCode) ? " / PRIVATE" : " / DEFAULT");
+                    // Leave shared AGC/NS/AEC preprocessing to Android and the assistant.
+                    String policy = "NONPRIVATE";
+                    String label = sourceName(sourceCode) + " / " + policy;
                     diagnostics(s, sourceName(sourceCode) + " / " + record.getSampleRate() + " Hz / "
-                        + (isPrivate(record, sourceCode) ? "PRIVATE" : "DEFAULT"));
+                        + policy);
                     state(s, attempt == 0 ? "STARTING" : "RETRYING", "Listening for microphone samples...", label);
                     boolean finished = read(s, record, label, attempt < sources.length);
                     if (finished || s.cancelled) return;
@@ -124,7 +118,6 @@ final class AudioEngine {
                     Log.w(TAG, "Input " + sourceCode + " unavailable", unavailable);
                     failure = "Microphone unavailable. Tap to retry.";
                 } finally {
-                    for (AudioEffect effect : effects) try { effect.release(); } catch (RuntimeException ignored) { }
                     if (record != null) {
                         try { record.stop(); } catch (RuntimeException ignored) { }
                         try { record.release(); } catch (RuntimeException ignored) { }
@@ -145,12 +138,12 @@ final class AudioEngine {
         if (mode == 1) return new int[]{MediaRecorder.AudioSource.UNPROCESSED};
         if (mode == 2) return new int[]{MediaRecorder.AudioSource.VOICE_RECOGNITION};
         if (mode == 3) return new int[]{MediaRecorder.AudioSource.MIC};
-        if (mode == 5) return new int[]{MediaRecorder.AudioSource.CAMCORDER};
         boolean raw = false;
         try { raw = manager != null && "true".equalsIgnoreCase(manager.getProperty(AudioManager.PROPERTY_SUPPORT_AUDIO_SOURCE_UNPROCESSED)); }
         catch (RuntimeException ignored) { }
-        // Standard MIC first for vendor compatibility; all API 30+ candidates request private capture.
-        return raw ? new int[]{1, 6, 9, 5, 0} : new int[]{1, 6, 5, 0};
+        // Non-private sources only, including on API 26-29 where the override is unavailable.
+        // Legacy CAM preference (5) deliberately migrates to AUTO.
+        return raw ? new int[]{1, 6, 9, 0} : new int[]{1, 6, 0};
     }
 
     private AudioRecord open(Session s, int sourceCode) {
@@ -164,7 +157,7 @@ final class AudioEngine {
                     .setChannelMask(AudioFormat.CHANNEL_IN_MONO).setEncoding(AudioFormat.ENCODING_PCM_16BIT).build();
                 AudioRecord.Builder builder = new AudioRecord.Builder().setAudioSource(sourceCode)
                     .setAudioFormat(format).setBufferSizeInBytes(Math.max(minimum * 4, SpectrumAnalyzer.HOP * 8));
-                if (Build.VERSION.SDK_INT >= 30) builder.setPrivacySensitive(true);
+                if (Build.VERSION.SDK_INT >= 30) builder.setPrivacySensitive(false);
                 record = builder.build();
                 if (record.getState() != AudioRecord.STATE_INITIALIZED) { record.release(); continue; }
                 preferBuiltIn(record);
@@ -192,7 +185,6 @@ final class AudioEngine {
         SpectrumAnalyzer analyzer = new SpectrumAnalyzer(record.getSampleRate());
         final short[] buffer = new short[SpectrumAnalyzer.HOP];
         long started = SystemClock.elapsedRealtime(), lastData = started, lastNonzero = started;
-        long blockedSince = 0;
         boolean signal = false, discardWindow = false;
         while (!s.cancelled) {
             int count = record.read(buffer, 0, buffer.length, AudioRecord.READ_NON_BLOCKING);
@@ -201,16 +193,14 @@ final class AudioEngine {
             boolean silenced = isSilenced(record), muted = isSystemMuted();
             if (silenced || muted) {
                 // Discard any queued PCM, even if it is nonzero. Do not show it as a current measurement.
-                if (blockedSince == 0) blockedSince = now;
                 discardWindow = true; signal = false; lastData = now;
-                state(s, muted ? "MIC MUTED" : "MIC BUSY", muted
+                state(s, muted ? "MIC MUTED" : "WAITING", muted
                     ? "Microphone is muted in system settings." : busyDetail(), label);
-                if (!muted && canSwitch && now - blockedSince >= 800) return false;
                 Thread.sleep(20); continue;
             }
             if (discardWindow) {
                 analyzer = new SpectrumAnalyzer(record.getSampleRate());
-                discardWindow = false; blockedSince = 0; lastNonzero = started = lastData = now;
+                discardWindow = false; lastNonzero = started = lastData = now;
                 state(s, "STARTING", "Microphone recovered. Rebuilding spectrum...", label);
             }
             if (count == 0) {
@@ -238,13 +228,6 @@ final class AudioEngine {
         return true;
     }
 
-    private boolean isPrivate(AudioRecord record, int sourceCode) {
-        if (Build.VERSION.SDK_INT >= 30) {
-            try { return record.isPrivacySensitive(); } catch (RuntimeException ignored) { }
-        }
-        return sourceCode == MediaRecorder.AudioSource.CAMCORDER;
-    }
-
     private boolean isSystemMuted() {
         try { return manager != null && manager.isMicrophoneMute(); } catch (RuntimeException ignored) { return false; }
     }
@@ -254,7 +237,7 @@ final class AudioEngine {
             if (manager != null && (manager.getMode() == AudioManager.MODE_IN_CALL
                 || manager.getMode() == AudioManager.MODE_IN_COMMUNICATION)) return "Call / communication is using the mic.";
         } catch (RuntimeException ignored) { }
-        return "Android input policy is muting the mic.";
+        return "Assistant / another app has mic priority.";
     }
 
     private boolean isSilenced(AudioRecord record) {
@@ -265,22 +248,11 @@ final class AudioEngine {
         } catch (RuntimeException ignored) { return false; }
     }
 
-    private void disableEffects(int sessionId, List<AudioEffect> effects) {
-        try { if (AutomaticGainControl.isAvailable()) disable(AutomaticGainControl.create(sessionId), effects); } catch (RuntimeException ignored) { }
-        try { if (NoiseSuppressor.isAvailable()) disable(NoiseSuppressor.create(sessionId), effects); } catch (RuntimeException ignored) { }
-        try { if (AcousticEchoCanceler.isAvailable()) disable(AcousticEchoCanceler.create(sessionId), effects); } catch (RuntimeException ignored) { }
-    }
-
-    private void disable(AudioEffect effect, List<AudioEffect> effects) {
-        if (effect != null) { effects.add(effect); effect.setEnabled(false); }
-    }
-
     private String sourceName(int source) {
         switch (source) {
             case 9: return "RAW";
             case 6: return "VOICE";
             case 1: return "MIC";
-            case 5: return "CAM";
             default: return "DEFAULT";
         }
     }
