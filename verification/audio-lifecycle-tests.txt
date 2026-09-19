@@ -1,24 +1,35 @@
-[0.001s][warning][perf,memops] Cannot use file /tmp/hsperfdata_root/6 because it is locked by another process (errno = 11)
+Picked up JAVA_TOOL_OPTIONS: -XX:-UsePerfData
+Picked up JAVA_TOOL_OPTIONS: -XX:-UsePerfData
 PASS real engine delivers PCM-derived FFT snapshots
 PASS unsupported MIC falls back to VOICE
 PASS all-zero MIC stream falls back without showing fake LIVE
 PASS sample-rate fallback adapts the plotted Nyquist limit
 PASS short AudioRecord reads accumulate correctly
 PASS permission denial becomes an actionable state
-PASS Android-silenced capture waits even when queued PCM is nonzero
+PASS policy-blocked nonzero queued PCM never becomes a measurement
 PASS dead input returns MIC ERROR after candidate exhaustion
 PASS rapid pause/restart never opens simultaneous recorders
 PASS DEMO uses generated samples with zero microphone opens
 PASS API 30 explicitly permits sharing without exclusive capture
-PASS assistant priority mid-stream waits and resumes on the same input
+PASS brief assistant interruption recovers the same input with fresh FFT history
 PASS regression: initially live MIC later all-zero also switches
-PASS assistant already active at launch can finish without a retry tap
-PASS all-busy AUTO holds its first non-private input without scanning
+PASS a transient startup block can recover before the next candidate
+PASS all-busy AUTO ends with a finite result and releases every recorder
 PASS system mute is respected before microphone creation
 PASS system mute during capture resumes without changing settings
 PASS Android 10 never falls back to exclusive CAM capture
 PASS Android 8 does not invoke newer policy APIs
-PASS call mode gives a distinct diagnostic without changing mode
+PASS call mode is reported during checks without changing it
 PASS legacy CAM selection safely resolves to non-private AUTO
 PASS all selectable real inputs allow sharing and preserve audio preprocessing
-RESULT 22 audio lifecycle tests passed (framework doubles; not device execution)
+PASS regression: silenced first MIC input advances to usable VOICE
+PASS regression: 48 kHz initializes but is blocked; 16 kHz is actually tried
+PASS Android selects the route without forcing a vendor built-in device
+PASS persistent mid-stream blocking advances after a grace period
+PASS all-zero streams terminate without a false LIVE result
+PASS Android 11 communication route is explicitly non-private
+PASS Android 11 camera route permits sharing before it starts
+PASS a device ignoring the non-private request is refused before recording
+PASS Android 10 never selects private communication without an override
+PASS manual MIC selection tries two rates and remains bounded
+RESULT 32 audio lifecycle tests passed (framework doubles; not device execution)

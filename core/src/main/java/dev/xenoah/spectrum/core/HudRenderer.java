@@ -51,7 +51,7 @@ public final class HudRenderer {
 
     private void footer(Surface s, HudState h) {
         s.line(20, 365, 460, 365, 1, 110);
-        s.text("TAP " + (h.frozen ? "RESUME" : "HOLD") + "   SWIPE VIEW   BACK MENU", 20, 385, 12, 220, false);
+        s.text("TAP " + (h.frozen ? "RESUME" : h.retryInput() ? "RETRY" : "HOLD") + "   SWIPE VIEW   BACK MENU", 20, 385, 12, 220, false);
     }
 
     private void message(Surface s, HudState h) {
@@ -68,17 +68,30 @@ public final class HudRenderer {
             s.text("No audio is saved or sent.", 24, 253, 14, 170, false);
         } else if (h.status.equals("WAITING")) {
             s.text(h.detail, 24, 184, 14, 220, false);
-            s.text("Analyzer resumes when the mic is available.", 24, 220, 14, 230, false);
-            s.text("You can keep the assistant enabled.", 24, 249, 14, 200, false);
-            s.text("Tap HOLD to pause. BACK opens settings.", 24, 278, 14, 170, false);
+            s.text("If input returns, analysis resumes.", 24, 220, 14, 230, false);
+            s.text("Persistent blocks trigger an input check.", 24, 249, 14, 200, false);
+            s.text("Tap RETRY. BACK opens settings.", 24, 278, 14, 170, false);
             s.text(h.diagnostic, 24, 313, 13, 220, false);
+        } else if (h.status.equals("MIC BLOCKED")) {
+            s.text(h.detail, 24, 184, 14, 220, false);
+            s.text("If recording on glasses, stop it first.", 24, 215, 14, 220, false);
+            s.text("Then tap RETRY with the assistant idle.", 24, 244, 14, 220, false);
+            s.text("Sharing may be limited by device policy.", 24, 273, 14, 185, false);
+            s.text(h.inputSummary, 24, 304, 12, 230, false);
+            s.text("v1.0.3 / " + h.diagnostic, 24, 335, 12, 180, false);
         } else if (h.status.equals("MIC ERROR") || h.status.equals("NO SIGNAL") || h.status.equals("MIC MUTED")) {
             s.text(h.detail, 24, 184, 14, 220, false);
             s.text("Tap to retry. BACK opens input settings.", 24, 213, 15, 220, false);
             s.text(h.status.equals("MIC MUTED") ? "Enable the mic in your device settings." : "Use INPUT: AUTO, MIC or VOICE.", 24, 249, 14, 200, false);
-            s.text("Assistant sharing depends on device policy.", 24, 275, 14, 170, false);
+            s.text(h.inputSummary, 24, 275, 12, 170, false);
             s.text(h.diagnostic, 24, 308, 13, 220, false);
-            s.text("v1.0.2 / BACK > HELP for input details", 24, 337, 12, 170, false);
+            s.text("v1.0.3 / BACK > HELP for input details", 24, 337, 12, 170, false);
+        } else if (h.status.equals("SCANNING")) {
+            s.text(h.detail, 24, 184, 14, 220, false);
+            s.text("Testing inputs that permit sharing.", 24, 220, 14, 200, false);
+            s.text("Stop glasses video recording for this test.", 24, 252, 14, 200, false);
+            s.text(h.diagnostic, 24, 294, 13, 230, false);
+            s.text(h.inputSummary, 24, 328, 12, 175, false);
         } else {
             s.text(h.detail, 24, 191, 15, 220, false);
             s.text("Sound is processed on this device only.", 24, 236, 14, 170, false);
@@ -174,7 +187,7 @@ public final class HudRenderer {
     }
 
     private void help(Surface s, HudState h) {
-        title(s, "HELP / INPUT", "v1.0.2");
+        title(s, "HELP / INPUT", "v1.0.3");
         String[] lines = {
             "Tap: hold / resume microphone",
             "Swipe: spectrum / waterfall / waveform",

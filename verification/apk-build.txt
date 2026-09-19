@@ -1,5 +1,9 @@
+Picked up JAVA_TOOL_OPTIONS: -XX:-UsePerfData
 Note: /workspace/scratch/f6de46c949c6/rokid-spectrum/app/src/main/java/dev/xenoah/spectrum/MainActivity.java uses or overrides a deprecated API.
 Note: Recompile with -Xlint:deprecation for details.
+Picked up JAVA_TOOL_OPTIONS: -XX:-UsePerfData
+Picked up JAVA_TOOL_OPTIONS: -XX:-UsePerfData
+Picked up JAVA_TOOL_OPTIONS: -XX:-UsePerfData
 Verifies
 Verified using v1 scheme (JAR signing): false
 Verified using v2 scheme (APK Signature Scheme v2): true
@@ -17,16 +21,16 @@ Signer #1 key size (bits): 3072
 Signer #1 public key SHA-256 digest: 718f445d077ace95699de831b8d528b72579aa534f59240e8b07bf727e952b70
 Signer #1 public key SHA-1 digest: 9139e7a7cf3b1367ea28d3614e54eb1f19cda075
 Signer #1 public key MD5 digest: 971369f466cbddf2107f006c266041ea
-Verifying alignment of /workspace/scratch/f6de46c949c6/rokid-spectrum/dist/RokidSpectrum-1.0.2.apk (4)...
+Verifying alignment of /workspace/scratch/f6de46c949c6/rokid-spectrum/dist/RokidSpectrum-1.0.3.apk (4)...
       49 AndroidManifest.xml (OK - compressed)
     1308 res/drawable/ic_launcher.xml (OK - compressed)
     1732 resources.arsc (OK)
     2641 classes.dex (OK - compressed)
-   23915 META-INF/ROKID-SP.SF (OK - compressed)
-   24317 META-INF/ROKID-SP.RSA (OK - compressed)
-   25833 META-INF/MANIFEST.MF (OK - compressed)
+   25539 META-INF/ROKID-SP.SF (OK - compressed)
+   25943 META-INF/ROKID-SP.RSA (OK - compressed)
+   27458 META-INF/MANIFEST.MF (OK - compressed)
 Verification succesful
-package: name='dev.xenoah.rokidspectrum' versionCode='3' versionName='1.0.2' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'
+package: name='dev.xenoah.rokidspectrum' versionCode='4' versionName='1.0.3' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'
 minSdkVersion:'26'
 targetSdkVersion:'32'
 uses-permission: name='android.permission.RECORD_AUDIO'
@@ -43,6 +47,6 @@ supports-screens: 'small' 'normal' 'large' 'xlarge'
 supports-any-density: 'true'
 locales: '--_--'
 densities: '160'
-APK: /workspace/scratch/f6de46c949c6/rokid-spectrum/dist/RokidSpectrum-1.0.2.apk
+APK: /workspace/scratch/f6de46c949c6/rokid-spectrum/dist/RokidSpectrum-1.0.3.apk
 Size: 33245 bytes
-SHA-256: ed1be16c488e0e64bb66900acfdc8f1ba9a8edca05803b5ce65c5f7e77713e9a
+SHA-256: b22a316b2601e0b42468878f6cd5d08df3bbe6d2276f296362e14bfba826b016

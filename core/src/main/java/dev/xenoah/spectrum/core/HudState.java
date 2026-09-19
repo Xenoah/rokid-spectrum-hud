@@ -12,7 +12,7 @@ public final class HudState {
     public final float[][] history = new float[HISTORY][SpectrumFrame.BANDS];
     public int mode, input, level, menuIndex, historyHead, historyCount;
     public boolean frozen, menu, help, haveFrame;
-    public String status = "STARTING", detail = "Opening microphone...", source = "", diagnostic = "";
+    public String status = "STARTING", detail = "Opening microphone...", source = "", diagnostic = "", inputSummary = "";
     public float topDb = -12;
     private int lastRate;
     private long lastSequence;
@@ -21,6 +21,11 @@ public final class HudState {
 
     /** Preserve existing modes; v1.0.1's private CAM mode becomes AUTO. */
     public static int restoreInput(int stored) { return stored >= 0 && stored < INPUTS.length ? stored : 0; }
+
+    public boolean retryInput() {
+        return !frozen && (status.equals("MIC BLOCKED") || status.equals("MIC ERROR")
+            || status.equals("NO SIGNAL") || status.equals("MIC MUTED") || status.equals("WAITING"));
+    }
 
     public void clearHistory() {
         for (float[] row : history) Arrays.fill(row, -120);

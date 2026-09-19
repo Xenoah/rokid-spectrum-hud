@@ -1,4 +1,3 @@
-[0.001s][warning][perf,memops] Cannot use file /tmp/hsperfdata_root/6 because it is locked by another process (errno = 11)
 PASS resume before focus waits, then starts one recorder
 PASS focus before resume starts only when both are ready
 PASS assistant overlay releases mic without requiring onPause
@@ -11,4 +10,6 @@ PASS denial does not reopen dialog or fabricate microphone input
 PASS assistant and headset keys pass through to the system
 PASS upgrading persisted CAM preference selects AUTO, not DEMO
 PASS rapid assistant focus changes never overlap recording sessions
-RESULT 12 Activity lifecycle tests passed (framework doubles; not device execution)
+PASS tap on exhausted microphone checks retries instead of entering HOLD
+PASS tap on transient WAITING retries instead of freezing a blocked input
+RESULT 14 Activity lifecycle tests passed (framework doubles; not device execution)

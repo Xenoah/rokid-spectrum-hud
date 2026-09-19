@@ -94,7 +94,7 @@ public final class MainActivity extends Activity {
         }
         if (capturing && !restart) return;
         stopInput(); state.haveFrame = false; state.clearHistory();
-        state.source = ""; state.diagnostic = "";
+        state.source = ""; state.diagnostic = ""; state.inputSummary = "";
         if (state.input != 4 && !allowed()) {
             state.status = "PERMISSION"; state.detail = "Microphone permission is required."; state.source = "";
             if (!prefs.getBoolean("askedMic", false) && !requesting) {
@@ -136,7 +136,7 @@ public final class MainActivity extends Activity {
         if (state.help) { state.help = false; hud.invalidate(); return; }
         if (state.menu) { activateMenu(); return; }
         if (state.status.equals("PERMISSION")) { if (allowed()) startInput(); else requestMic(); return; }
-        if (state.status.equals("MIC ERROR") || state.status.equals("NO SIGNAL") || state.status.equals("MIC MUTED")) { startInput(); return; }
+        if (state.retryInput()) { startInput(); return; }
         state.frozen = !state.frozen;
         if (state.frozen) stopInput(); else startInput();
         hud.invalidate();

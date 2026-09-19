@@ -36,9 +36,10 @@ public final class RenderPreview implements HudRenderer.Surface {
         }
         for(int mode=0;mode<3;mode++){h.mode=mode;render(h,folder,HudState.MODES[mode].toLowerCase());}
         h.mode=0;h.menu=true;h.menuIndex=3;render(h,folder,"menu");h.help=true;render(h,folder,"help");h.help=false;h.menu=false;
-        for(String status:new String[]{"STARTING","PERMISSION","MIC ERROR","NO SIGNAL","WAITING","MIC MUTED","RETRYING"}){
+        for(String status:new String[]{"STARTING","PERMISSION","MIC ERROR","NO SIGNAL","WAITING","MIC MUTED","SCANNING","MIC BLOCKED"}){
             h.status=status;h.diagnostic="MIC / 48000 Hz / NONPRIVATE";
-            h.detail=status.equals("WAITING")?"Assistant / another app has mic priority.":status.equals("MIC MUTED")?"Microphone is muted in system settings.":"Digital silence. Check mic privacy / input.";
+            h.inputSummary=status.equals("SCANNING")?"API 34 / MODE 0 / OS ROUTE":"TESTED 9 / BLOCKED 9 / ZERO 0 / ERR 0";
+            h.detail=status.equals("WAITING")?"System policy is silencing this input.":status.equals("MIC MUTED")?"Microphone is muted in system settings.":status.equals("MIC BLOCKED")?"System policy silenced the tested inputs.":status.equals("SCANNING")?"Input 9 / 9 silenced; trying shared routes.":"Digital silence. Check mic privacy / input.";
             render(h,folder,status.toLowerCase().replace(' ','-'));
         }
         h.status="WAITING";h.detail="Assistant / another window is active.";
@@ -55,6 +56,6 @@ public final class RenderPreview implements HudRenderer.Surface {
         ImageIO.write(sheet,"png",new File(folder,"RokidSpectrum-preview.png"));sg.dispose();
         BufferedImage portrait=new BufferedImage(480,640,BufferedImage.TYPE_INT_RGB);Graphics2D pg=portrait.createGraphics();
         pg.drawImage(ImageIO.read(new File(folder,"spectrum.png")),0,120,null);pg.dispose();ImageIO.write(portrait,"png",new File(folder,"safe-area-480x640.png"));
-        System.out.println("PASS shared-code rendering / 16 UI states / "+checked+" text bounds checks / 480x400 and 480x640");
+        System.out.println("PASS shared-code rendering / 17 UI states / "+checked+" text bounds checks / 480x400 and 480x640");
     }
 }

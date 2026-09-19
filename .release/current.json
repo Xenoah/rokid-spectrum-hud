@@ -1,29 +1,21 @@
 {
-  "version": "1.0.2",
-  "title": "v1.0.2 — アシスタント併用への変更 / Non-private capture for assistant coexistence",
-  "apk": ".release/RokidSpectrum-1.0.2.apk",
-  "apk_sha256": "ed1be16c488e0e64bb66900acfdc8f1ba9a8edca05803b5ce65c5f7e77713e9a",
+  "version": "1.0.3",
+  "title": "v1.0.3 — 無期限WAITINGの解消と入力診断 / Bounded input probing and WAITING diagnostics",
+  "apk": ".release/RokidSpectrum-1.0.3.apk",
+  "apk_sha256": "b22a316b2601e0b42468878f6cd5d08df3bbe6d2276f296362e14bfba826b016",
   "images": [
     {
       "path": "verification/renders/RokidSpectrum-preview.png",
-      "name": "RokidSpectrum-1.0.2-demo-preview.png"
+      "name": "RokidSpectrum-1.0.3-demo-preview.png"
     },
     {
-      "path": "verification/renders/waiting.png",
-      "name": "RokidSpectrum-1.0.2-input-state-preview.png"
+      "path": "verification/renders/mic-blocked.png",
+      "name": "RokidSpectrum-1.0.3-input-state-preview.png"
     },
     {
-      "path": "docs/screenshots/v1.0.2-waiting-spectrum.jpg",
-      "name": "RokidSpectrum-1.0.2-device-waiting-spectrum.jpg"
-    },
-    {
-      "path": "docs/screenshots/v1.0.2-waiting-waterfall.jpg",
-      "name": "RokidSpectrum-1.0.2-device-waiting-waterfall.jpg"
-    },
-    {
-      "path": "docs/screenshots/v1.0.2-waiting-waveform.jpg",
-      "name": "RokidSpectrum-1.0.2-device-waiting-waveform.jpg"
+      "path": "verification/renders/scanning.png",
+      "name": "RokidSpectrum-1.0.3-scanning-preview.png"
     }
   ],
-  "version_code": 3
+  "version_code": 4
 }

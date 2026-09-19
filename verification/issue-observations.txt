@@ -1,0 +1,7 @@
+User evidence: 10208.jpg, 10209.jpg, 10210.jpg show WAITING and MIC / 48000 Hz / NONPRIVATE.
+10211.mp4: sampled frames every 5 seconds show working menu, restart followed by WAITING, later HOLD and assistant overlay.
+Video duration 34.626967 seconds; AAC 16000 Hz mono audio. Decoded samples: 526336; nonzero 99.1137%; RMS -33.8557 dBFS.
+The video recorder is a possible competing microphone user; neither pictures nor this PCM analysis identify the component silencing AudioRecord.
+Code finding: v1.0.2 remained indefinitely on its first initialized policy-silenced input.
+v1.0.3 bounds the probe, tests other non-private sources and 16 kHz even after successful 48 kHz initialization, leaves routing to Android, and releases all failed capture sessions.
+Device-level simultaneous capture is still unverified. No bypass of platform policy or private fallback is implemented.
