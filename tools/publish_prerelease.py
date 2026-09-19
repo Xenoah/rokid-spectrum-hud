@@ -37,6 +37,9 @@ def prepare():
         p = Path(name)
         if "signing" in p.parts or p.suffix.lower() in {".p12", ".jks", ".keystore", ".pem", ".key"}:
             raise SystemExit("Refusing to publish signing material.")
+        committed = subprocess.check_output(["git", "show", f"{commit}:{name}"], cwd=ROOT)
+        if (ROOT / name).read_bytes() != committed:
+            raise SystemExit("Working file differs from the committed source: " + name)
     apk = ROOT / meta["apk"]
     if sha256(apk) != meta["apk_sha256"]:
         raise SystemExit("Archived APK checksum mismatch.")
