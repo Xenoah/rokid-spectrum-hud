@@ -5,14 +5,14 @@ import java.util.Arrays;
 /** UI-thread state shared by the Android view and offline renderer. */
 public final class HudState {
     public static final String[] MODES = {"SPECTRUM", "WATERFALL", "WAVEFORM"};
-    public static final String[] INPUTS = {"AUTO", "RAW", "VOICE", "MIC", "DEMO"};
+    public static final String[] INPUTS = {"AUTO", "RAW", "VOICE", "MIC", "DEMO", "CAM"};
     public static final String[] LEVELS = {"AUTO", "0 dBFS", "-20 dBFS", "-40 dBFS"};
     public static final int HISTORY = 100, MENU_ITEMS = 8;
     public final SpectrumFrame frame = new SpectrumFrame();
     public final float[][] history = new float[HISTORY][SpectrumFrame.BANDS];
     public int mode, input, level, menuIndex, historyHead, historyCount;
     public boolean frozen, menu, help, haveFrame;
-    public String status = "STARTING", detail = "Opening microphone...", source = "";
+    public String status = "STARTING", detail = "Opening microphone...", source = "", diagnostic = "";
     public float topDb = -12;
     private int lastRate;
     private long lastSequence;
@@ -25,7 +25,7 @@ public final class HudState {
     }
 
     public void receive(SpectrumFrame next) {
-        if (next.sampleRate != lastRate) { clearHistory(); lastRate = next.sampleRate; }
+        if (next.sampleRate != lastRate || (lastSequence > 0 && next.sequence <= lastSequence)) { clearHistory(); lastRate = next.sampleRate; }
         if (lastSequence > 0 && next.sequence > lastSequence + 1) {
             int missing = (int)Math.min(HISTORY, next.sequence - lastSequence - 1);
             for (int i = 0; i < missing; i++) {

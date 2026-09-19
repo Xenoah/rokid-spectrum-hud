@@ -12,38 +12,46 @@ STUBS={
 'android/os/Process.java': '''package android.os; public class Process { public static final int THREAD_PRIORITY_AUDIO=-16; public static void setThreadPriority(int x){} }''',
 'android/os/SystemClock.java': '''package android.os; public class SystemClock { public static long elapsedRealtime(){return System.nanoTime()/100000L;} }''',
 'android/util/Log.java': '''package android.util; public class Log { public static int w(String a,String b,Throwable t){return 0;} public static int e(String a,String b,Throwable t){return 0;} }''',
-'android/media/AudioFormat.java': '''package android.media; public class AudioFormat { public static final int CHANNEL_IN_MONO=16,ENCODING_PCM_16BIT=2; }''',
-'android/media/MediaRecorder.java': '''package android.media; public class MediaRecorder { public static class AudioSource {public static final int UNPROCESSED=9,VOICE_RECOGNITION=6,MIC=1;} }''',
+'android/media/AudioFormat.java': '''package android.media; public class AudioFormat { public static final int CHANNEL_IN_MONO=16,ENCODING_PCM_16BIT=2; int rate,channel,encoding; public static class Builder {AudioFormat f=new AudioFormat(); public Builder setSampleRate(int n){f.rate=n;return this;} public Builder setChannelMask(int n){f.channel=n;return this;} public Builder setEncoding(int n){f.encoding=n;return this;} public AudioFormat build(){return f;} } }''',
+'android/media/MediaRecorder.java': '''package android.media; public class MediaRecorder { public static class AudioSource {public static final int UNPROCESSED=9,VOICE_RECOGNITION=6,MIC=1,CAMCORDER=5;} }''',
 'android/media/AudioDeviceInfo.java': '''package android.media; public class AudioDeviceInfo { public static final int TYPE_BUILTIN_MIC=15; public int getType(){return 15;} }''',
-'android/media/AudioManager.java': '''package android.media; public class AudioManager { public static final int GET_DEVICES_INPUTS=1; public static final String PROPERTY_SUPPORT_AUDIO_SOURCE_UNPROCESSED="raw"; public String getProperty(String k){return "true";} public AudioDeviceInfo[] getDevices(int x){return new AudioDeviceInfo[]{new AudioDeviceInfo()};} }''',
-'android/media/AudioRecordingConfiguration.java': '''package android.media; public class AudioRecordingConfiguration { public boolean isClientSilenced(){return AudioRecord.silenced;} }''',
+'android/media/AudioManager.java': '''package android.media; public class AudioManager { public static final int GET_DEVICES_INPUTS=1,MODE_IN_CALL=2,MODE_IN_COMMUNICATION=3; public static final String PROPERTY_SUPPORT_AUDIO_SOURCE_UNPROCESSED="raw"; public String getProperty(String k){return "true";} public AudioDeviceInfo[] getDevices(int x){return new AudioDeviceInfo[]{new AudioDeviceInfo()};} public boolean isMicrophoneMute(){return AudioRecord.systemMuted;} public int getMode(){return AudioRecord.audioMode;} }''',
+'android/media/AudioRecordingConfiguration.java': '''package android.media; public class AudioRecordingConfiguration {private final AudioRecord r; AudioRecordingConfiguration(AudioRecord r){this.r=r;} public boolean isClientSilenced(){return AudioRecord.silenced||AudioRecord.blockedSource==r.source||(AudioRecord.requiresPrivate&&!r.privateCapture);} }''',
 'android/media/audiofx/AudioEffect.java': '''package android.media.audiofx; public class AudioEffect { public int setEnabled(boolean x){return 0;} public void release(){} }''',
 'android/media/AudioRecord.java': '''package android.media;
 import java.util.concurrent.atomic.AtomicInteger;
 public class AudioRecord {
  public static final int STATE_INITIALIZED=1,RECORDSTATE_RECORDING=3,READ_NON_BLOCKING=1;
- public static volatile boolean denied,failRaw,silenceRaw,silenced,readError;
- public static volatile int onlyRate,chunk=2048;
+ public static volatile boolean denied,silenced,readError,systemMuted,requiresPrivate,allZero;
+ public static volatile int onlyRate,chunk=2048,failSource=-1,zeroSource=-1,blockedSource=-1,allowedSource=-1,audioMode;
  public static final AtomicInteger open=new AtomicInteger(),maxOpen=new AtomicInteger(),created=new AtomicInteger();
- final int source,rate; long sample; boolean released;
+ final int source,rate; long sample; boolean released,privateCapture;
  public AudioRecord(int source,int rate,int channel,int format,int bytes){
    if(denied)throw new SecurityException("permission denied");
-   if((failRaw&&source==9)||(onlyRate!=0&&onlyRate!=rate))throw new IllegalArgumentException("unsupported input");
-   this.source=source;this.rate=rate;int current=open.incrementAndGet();maxOpen.accumulateAndGet(current,Math::max);created.incrementAndGet();
+   if(failSource==source||(allowedSource>=0&&source!=allowedSource)||(onlyRate!=0&&onlyRate!=rate))throw new IllegalArgumentException("unsupported input");
+   this.source=source;this.rate=rate;privateCapture=source==5;int current=open.incrementAndGet();maxOpen.accumulateAndGet(current,Math::max);created.incrementAndGet();
+ }
+ public static class Builder {
+   int source,bufferSize; AudioFormat f; Boolean sensitive;
+   public Builder setAudioSource(int n){source=n;return this;} public Builder setAudioFormat(AudioFormat n){f=n;return this;}
+   public Builder setBufferSizeInBytes(int n){bufferSize=n;return this;}
+   public Builder setPrivacySensitive(boolean n){if(android.os.Build.VERSION.SDK_INT<30)throw new AssertionError("unguarded API 30 call");sensitive=n;return this;}
+   public AudioRecord build(){AudioRecord r=new AudioRecord(source,f.rate,f.channel,f.encoding,bufferSize);if(sensitive!=null)r.privateCapture=sensitive;return r;}
  }
  public static int getMinBufferSize(int a,int b,int c){return 2048;}
  public int getState(){return 1;} public void startRecording(){} public int getRecordingState(){return 3;}
  public void stop(){} public void release(){if(!released){released=true;open.decrementAndGet();}}
  public int getAudioSessionId(){return 1;} public int getSampleRate(){return rate;}
  public boolean setPreferredDevice(AudioDeviceInfo d){return true;}
- public AudioRecordingConfiguration getActiveRecordingConfiguration(){return new AudioRecordingConfiguration();}
+ public AudioRecordingConfiguration getActiveRecordingConfiguration(){return new AudioRecordingConfiguration(this);}
+ public boolean isPrivacySensitive(){if(android.os.Build.VERSION.SDK_INT<30)throw new AssertionError("unguarded API 30 query");return privateCapture;}
  public int read(short[] data,int offset,int count,int mode){
    if(readError)return -6;int n=Math.min(chunk,count);
-   for(int i=0;i<n;i++,sample++)data[offset+i]=(silenceRaw&&source==9)?0:(short)(15000*Math.sin(2*Math.PI*1000*sample/rate));
+   for(int i=0;i<n;i++,sample++)data[offset+i]=(allZero||source==zeroSource)?0:(short)(15000*Math.sin(2*Math.PI*1000*sample/rate));
    try{Thread.sleep(1);}catch(InterruptedException e){Thread.currentThread().interrupt();}
    return n;
  }
- public static void reset(){denied=false;failRaw=false;silenceRaw=false;silenced=false;readError=false;onlyRate=0;chunk=2048;created.set(0);maxOpen.set(0);}
+ public static void reset(){denied=false;silenced=false;readError=false;systemMuted=false;requiresPrivate=false;allZero=false;onlyRate=0;chunk=2048;failSource=zeroSource=blockedSource=allowedSource=-1;audioMode=0;android.os.Build.VERSION.SDK_INT=31;created.set(0);maxOpen.set(0);}
 }'''
 }
 for name in ['AutomaticGainControl','NoiseSuppressor','AcousticEchoCanceler']:
@@ -62,6 +70,16 @@ public class AudioLifecycleTests {
    while(System.nanoTime()<end){audio.poll(h);if(h.status.equals(status))return;Thread.sleep(3);}
    throw new AssertionError("Expected "+status+"; got "+h.status+" "+h.detail);
  }
+ static void untilSource(AudioEngine audio,HudState h,String source)throws Exception{
+   long end=System.nanoTime()+3_000_000_000L;
+   while(System.nanoTime()<end){audio.poll(h);if(h.status.equals("LIVE")&&h.source.startsWith(source))return;Thread.sleep(3);}
+   throw new AssertionError("Expected LIVE "+source+"; got "+h.status+" "+h.source);
+ }
+ static void openedAtLeast(int wanted)throws Exception{
+   long end=System.nanoTime()+3_000_000_000L;
+   while(AudioRecord.created.get()<wanted&&System.nanoTime()<end)Thread.sleep(3);
+   check(AudioRecord.created.get()>=wanted,"input candidates were never retried");
+ }
  static void test(String name,Test test)throws Exception{
    AudioRecord.reset();AudioEngine audio=new AudioEngine(new Context());HudState ui=new HudState();
    try{test.run(audio,ui);}finally{audio.close();long end=System.nanoTime()+1_000_000_000L;while(AudioRecord.open.get()!=0&&System.nanoTime()<end)Thread.sleep(3);}
@@ -69,15 +87,26 @@ public class AudioLifecycleTests {
  }
  public static void main(String[] args)throws Exception{
    test("real engine delivers PCM-derived FFT snapshots",(a,h)->{a.start(0);until(a,h,"LIVE");check(h.haveFrame,"missing frame");check(Math.abs(h.frame.dominantHz-1000)<.2,"frequency");});
-   test("unsupported RAW falls back to VOICE",(a,h)->{AudioRecord.failRaw=true;a.start(0);until(a,h,"LIVE");check(h.source.contains("VOICE"),"source fallback");});
-   test("all-zero RAW stream falls back without showing fake LIVE",(a,h)->{AudioRecord.silenceRaw=true;a.start(0);until(a,h,"LIVE");check(h.source.contains("VOICE"),"zero-source fallback");});
+   test("unsupported MIC falls back to VOICE",(a,h)->{AudioRecord.failSource=1;a.start(0);until(a,h,"LIVE");check(h.source.contains("VOICE"),"source fallback");});
+   test("all-zero MIC stream falls back without showing fake LIVE",(a,h)->{AudioRecord.zeroSource=1;a.start(0);until(a,h,"LIVE");check(h.source.contains("VOICE"),"zero-source fallback");});
    test("sample-rate fallback adapts the plotted Nyquist limit",(a,h)->{AudioRecord.onlyRate=16000;a.start(0);until(a,h,"LIVE");check(h.frame.sampleRate==16000&&h.frame.maxFrequency==8000,"rate adaptation");});
    test("short AudioRecord reads accumulate correctly",(a,h)->{AudioRecord.chunk=137;a.start(0);until(a,h,"LIVE");check(Math.abs(h.frame.dominantHz-1000)<.2,"partial reads");});
    test("permission denial becomes an actionable state",(a,h)->{AudioRecord.denied=true;a.start(0);until(a,h,"PERMISSION");check(!h.haveFrame,"permission fabricated a frame");});
-   test("Android-silenced capture is reported explicitly",(a,h)->{AudioRecord.silenced=true;a.start(0);until(a,h,"MIC BUSY");});
+   test("Android-silenced capture is reported, even when queued PCM is nonzero",(a,h)->{AudioRecord.silenced=true;a.start(0);until(a,h,"MIC BUSY");check(!h.haveFrame,"blocked samples were published as live");});
    test("dead input returns MIC ERROR after candidate exhaustion",(a,h)->{AudioRecord.readError=true;a.start(0);until(a,h,"MIC ERROR");});
    test("rapid pause/restart never opens simultaneous recorders",(a,h)->{a.start(0);until(a,h,"LIVE");for(int i=0;i<30;i++){a.stop();a.start(i%4);}until(a,h,"LIVE");check(AudioRecord.maxOpen.get()<=1,"overlapping recorders");});
    test("DEMO uses generated samples with zero microphone opens",(a,h)->{a.start(4);until(a,h,"DEMO");long end=System.nanoTime()+2_000_000_000L;while(!h.haveFrame&&System.nanoTime()<end){a.poll(h);Thread.sleep(3);}check(h.haveFrame,"demo missing");check(AudioRecord.created.get()==0,"demo opened microphone");check(h.source.equals("DEMO / GENERATED"),"demo unlabeled");});
+   test("API 30 private-capture request survives competing shared input",(a,h)->{AudioRecord.requiresPrivate=true;a.start(0);until(a,h,"LIVE");check(h.diagnostic.contains("PRIVATE"),"private request missing");check(h.source.startsWith("MIC"),"standard MIC must be first");});
+   test("regression: initially live MIC later silenced switches to another source",(a,h)->{a.start(0);untilSource(a,h,"MIC");AudioRecord.blockedSource=1;untilSource(a,h,"VOICE");check(AudioRecord.maxOpen.get()==1,"old input was not released");});
+   test("regression: initially live MIC later all-zero also switches",(a,h)->{a.start(0);untilSource(a,h,"MIC");AudioRecord.zeroSource=1;untilSource(a,h,"VOICE");});
+   test("busy retry holds a supported input and recovers automatically",(a,h)->{AudioRecord.allowedSource=1;AudioRecord.silenced=true;a.start(0);openedAtLeast(2);until(a,h,"MIC BUSY");int before=AudioRecord.created.get();AudioRecord.silenced=false;untilSource(a,h,"MIC");check(AudioRecord.created.get()==before,"recovery reopened the microphone unnecessarily");});
+   test("all-busy AUTO finishes its scan and stops reopening",(a,h)->{AudioRecord.silenced=true;a.start(0);openedAtLeast(6);until(a,h,"MIC BUSY");int n=AudioRecord.created.get();Thread.sleep(200);check(AudioRecord.created.get()==n,"unbounded restart loop");AudioRecord.silenced=false;until(a,h,"LIVE");});
+   test("system mute is respected before microphone creation",(a,h)->{AudioRecord.systemMuted=true;a.start(0);until(a,h,"MIC MUTED");check(AudioRecord.created.get()==0,"opened mic under system mute");AudioRecord.systemMuted=false;until(a,h,"LIVE");});
+   test("system mute during capture resumes without changing settings",(a,h)->{a.start(0);until(a,h,"LIVE");AudioRecord.systemMuted=true;until(a,h,"MIC MUTED");Thread.sleep(100);check(AudioRecord.systemMuted,"app changed system mute");AudioRecord.systemMuted=false;until(a,h,"LIVE");});
+   test("Android 10 uses CAM privacy default without calling API 30",(a,h)->{android.os.Build.VERSION.SDK_INT=29;AudioRecord.requiresPrivate=true;a.start(0);untilSource(a,h,"CAM");});
+   test("Android 8 does not invoke newer policy APIs",(a,h)->{android.os.Build.VERSION.SDK_INT=26;a.start(0);until(a,h,"LIVE");});
+   test("call mode gives a distinct diagnostic without changing mode",(a,h)->{AudioRecord.silenced=true;AudioRecord.audioMode=2;a.start(3);until(a,h,"MIC BUSY");check(h.detail.startsWith("Call"),"missing call detail");check(AudioRecord.audioMode==2,"changed global audio mode");});
+   test("CAM is manually selectable and captures microphone samples",(a,h)->{a.start(5);untilSource(a,h,"CAM");check(Math.abs(h.frame.dominantHz-1000)<.2,"CAM path");});
    System.out.println("RESULT "+count+" audio lifecycle tests passed (framework doubles; not device execution)");
  }
 }'''

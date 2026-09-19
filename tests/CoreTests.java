@@ -129,6 +129,11 @@ public final class CoreTests {
             f.sequence=5;h.receive(f);check(h.historyCount==5,"lost time was compressed");
             near(h.history[1][0],-120,0,"missing frame must be blank");near(h.history[4][0],-30,0,"newest row");
         });
+        test("input recovery discards previous waterfall timing", () -> {
+            HudState h=new HudState();SpectrumFrame f=new SpectrumFrame();f.sampleRate=48000;f.sequence=40;f.bands[0]=-25;h.receive(f);
+            f.sequence=1;f.bands[0]=-45;h.receive(f);check(h.historyCount==1,"old stream history survived recovery");
+            near(h.history[0][0],-45,0,"new stream row");
+        });
         test("invalid sample-rate and input counts fail explicitly", () -> {
             try {new SpectrumAnalyzer(0);throw new AssertionError("rate");}catch(IllegalArgumentException expected){}
             try {new SpectrumAnalyzer(48000).accept(new short[2],3,x->{});throw new AssertionError("count");}catch(IllegalArgumentException expected){}

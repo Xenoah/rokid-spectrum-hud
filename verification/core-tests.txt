@@ -24,6 +24,6 @@ PASS snapshot does not alias producer arrays
 PASS waterfall ring wrap and sample-rate reset
 PASS auto display scale cannot alter measured dBFS
 PASS skipped UI frames leave gaps, not a stretched waterfall time axis
+PASS input recovery discards previous waterfall timing
 PASS invalid sample-rate and input counts fail explicitly
-RESULT 27 tests passed
-PASS shared-code rendering / 12 UI states / 198 text bounds checks / 480x400 and 480x640
+RESULT 28 tests passed

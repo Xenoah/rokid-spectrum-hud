@@ -26,7 +26,7 @@ public final class MainActivity extends Activity {
         super.onCreate(saved);
         prefs = getSharedPreferences("spectrum", MODE_PRIVATE);
         state.mode = bounded(prefs.getInt("mode", 0), 3);
-        state.input = bounded(prefs.getInt("input", 0), 5);
+        state.input = bounded(prefs.getInt("input", 0), HudState.INPUTS.length);
         state.level = bounded(prefs.getInt("level", 0), 4);
         audio = new AudioEngine(this);
         hud = new HudView(this, state, this);
@@ -111,7 +111,7 @@ public final class MainActivity extends Activity {
         if (state.help) { state.help = false; hud.invalidate(); return; }
         if (state.menu) { activateMenu(); return; }
         if (state.status.equals("PERMISSION")) { if (allowed()) startInput(); else requestMic(); return; }
-        if (state.status.equals("MIC ERROR") || state.status.equals("NO SIGNAL") || state.status.equals("MIC BUSY")) { startInput(); return; }
+        if (state.status.equals("MIC ERROR") || state.status.equals("NO SIGNAL") || state.status.equals("MIC BUSY") || state.status.equals("MIC MUTED")) { startInput(); return; }
         state.frozen = !state.frozen;
         if (state.frozen) audio.stop(); else startInput();
         hud.invalidate();
@@ -154,7 +154,7 @@ public final class MainActivity extends Activity {
             case 1: state.mode = (state.mode + 1) % 3; break;
             case 2: state.level = (state.level + 1) % 4; break;
             case 3:
-                state.input = (state.input + 1) % 5;
+                state.input = (state.input + 1) % HudState.INPUTS.length;
                 state.frozen = false; startInput(); break;
             case 4:
                 state.menu = false; state.frozen = false;

@@ -1,1 +1,2 @@
-PASS ZIP CRC; valid DEX header; 17 classes; launcher and DSP included; no native libraries; no third-party runtime references.
+PASS v2 APK signatures; identical signing certificate; unchanged package; versionCode 2; versionName 1.0.1; API 26 minimum; private-capture API included in DEX; ZIP CRC; no Internet permission; no native libraries; no third-party runtime references.
+Certificate SHA-256: 9909d7a879a5ce5e1f407665222cf03532c3810a295027b88a7b196da1143758

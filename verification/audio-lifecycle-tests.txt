@@ -1,11 +1,22 @@
 PASS real engine delivers PCM-derived FFT snapshots
-PASS unsupported RAW falls back to VOICE
-PASS all-zero RAW stream falls back without showing fake LIVE
+PASS unsupported MIC falls back to VOICE
+PASS all-zero MIC stream falls back without showing fake LIVE
 PASS sample-rate fallback adapts the plotted Nyquist limit
 PASS short AudioRecord reads accumulate correctly
 PASS permission denial becomes an actionable state
-PASS Android-silenced capture is reported explicitly
+PASS Android-silenced capture is reported, even when queued PCM is nonzero
 PASS dead input returns MIC ERROR after candidate exhaustion
 PASS rapid pause/restart never opens simultaneous recorders
 PASS DEMO uses generated samples with zero microphone opens
-RESULT 10 audio lifecycle tests passed (framework doubles; not device execution)
+PASS API 30 private-capture request survives competing shared input
+PASS regression: initially live MIC later silenced switches to another source
+PASS regression: initially live MIC later all-zero also switches
+PASS busy retry holds a supported input and recovers automatically
+PASS all-busy AUTO finishes its scan and stops reopening
+PASS system mute is respected before microphone creation
+PASS system mute during capture resumes without changing settings
+PASS Android 10 uses CAM privacy default without calling API 30
+PASS Android 8 does not invoke newer policy APIs
+PASS call mode gives a distinct diagnostic without changing mode
+PASS CAM is manually selectable and captures microphone samples
+RESULT 21 audio lifecycle tests passed (framework doubles; not device execution)

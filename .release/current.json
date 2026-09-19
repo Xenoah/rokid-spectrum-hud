@@ -1,20 +1,16 @@
 {
-  "version": "1.0.0",
-  "title": "v1.0.0 — 初版：3つの解析表示 / Initial spectrum HUD",
-  "apk": ".release/RokidSpectrum-1.0.0.apk",
-  "apk_sha256": "edba4b5e44654405e5c2703421078b11b9e26ede0427dfc5bed1717be91b8e0f",
+  "version": "1.0.1",
+  "title": "v1.0.1 — MIC BUSY対策 / MIC BUSY recovery attempt",
+  "apk": ".release/RokidSpectrum-1.0.1.apk",
+  "apk_sha256": "e4b617dd87dbf2c65ed45f0316b2c331e5fe09203e1dfcdf2f73549e2ad60995",
   "images": [
     {
       "path": "verification/renders/RokidSpectrum-preview.png",
-      "name": "RokidSpectrum-1.0.0-demo-preview.png"
+      "name": "RokidSpectrum-1.0.1-demo-preview.png"
     },
     {
-      "path": "verification/renders/mic-busy.png",
-      "name": "RokidSpectrum-1.0.0-input-state-preview.png"
-    },
-    {
-      "path": "docs/screenshots/v1.0.0-mic-busy.jpg",
-      "name": "RokidSpectrum-1.0.0-device-mic-busy.jpg"
+      "path": "verification/renders/retrying.png",
+      "name": "RokidSpectrum-1.0.1-input-state-preview.png"
     }
   ]
 }

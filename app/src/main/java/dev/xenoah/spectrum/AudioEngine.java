@@ -35,7 +35,7 @@ final class AudioEngine {
     private Session active;
     private Future<?> pending;
     private long published, consumed;
-    private String status = "STARTING", detail = "Opening microphone...", source = "";
+    private String status = "STARTING", detail = "Opening microphone...", source = "", diagnostic = "";
 
     private static final class Session {
         volatile boolean cancelled, resetPeaks;
@@ -48,7 +48,7 @@ final class AudioEngine {
     synchronized void start(int input) {
         stop();
         final Session session = new Session(input);
-        active = session; status = "STARTING"; detail = "Opening microphone..."; source = ""; consumed = published;
+        active = session; status = "STARTING"; detail = "Opening microphone..."; source = ""; diagnostic = ""; consumed = published;
         pending = worker.submit(new Runnable() { @Override public void run() { capture(session); } });
     }
 
@@ -64,7 +64,7 @@ final class AudioEngine {
 
     synchronized void poll(HudState ui) {
         if (active == null || ui.frozen) return;
-        ui.status = status; ui.detail = detail; ui.source = source;
+        ui.status = status; ui.detail = detail; ui.source = source; ui.diagnostic = diagnostic;
         if (published != consumed) { ui.receive(latest); consumed = published; }
     }
 
@@ -74,12 +74,16 @@ final class AudioEngine {
         if (inputName != null) source = inputName;
     }
 
-    private synchronized void publish(Session s, SpectrumFrame frame, String inputName, boolean silent, boolean silenced) {
+    private synchronized void diagnostics(Session s, String info) {
+        if (active == s && !s.cancelled) diagnostic = info;
+    }
+
+    private synchronized void publish(Session s, SpectrumFrame frame, String inputName) {
         if (active != s || s.cancelled) return;
         latest.copyFrom(frame); published++;
         source = inputName;
-        status = silenced ? "MIC BUSY" : silent ? "NO SIGNAL" : s.input == 4 ? "DEMO" : "LIVE";
-        detail = silenced ? "Android has silenced this microphone." : silent ? "Digital silence. Check mic privacy / input." : "";
+        status = s.input == 4 ? "DEMO" : "LIVE";
+        detail = "";
     }
 
     private void capture(Session s) {
@@ -87,9 +91,18 @@ final class AudioEngine {
             try { Process.setThreadPriority(Process.THREAD_PRIORITY_AUDIO); } catch (RuntimeException ignored) { }
             if (s.cancelled) return;
             if (s.input == 4) { demo(s); return; }
+            // Respect a system mute. Never turn it off or repeatedly open the microphone underneath it.
+            while (!s.cancelled && isSystemMuted()) {
+                state(s, "MIC MUTED", "Microphone is muted in system settings.", "");
+                Thread.sleep(120);
+            }
+            if (s.cancelled) return;
             int[] sources = sources(s.input);
             String failure = "Microphone unavailable. Close other audio apps.";
-            for (int sourceCode : sources) {
+            // One scan plus one retry. The retry holds the first working input for policy recovery.
+            // No system process is stopped and audio mode/focus is not changed globally.
+            for (int attempt = 0; attempt < sources.length * 2; attempt++) {
+                int sourceCode = sources[attempt % sources.length];
                 if (s.cancelled) return;
                 AudioRecord record = null;
                 List<AudioEffect> effects = new ArrayList<>();
@@ -98,10 +111,12 @@ final class AudioEngine {
                     if (record == null) continue;
                     if (s.cancelled) return;
                     disableEffects(record.getAudioSessionId(), effects);
-                    String label = sourceName(sourceCode);
-                    state(s, "STARTING", "Listening for microphone samples...", label);
-                    boolean hadSignal = read(s, record, label);
-                    if (hadSignal || s.cancelled) return;
+                    String label = sourceName(sourceCode) + (isPrivate(record, sourceCode) ? " / PRIVATE" : " / DEFAULT");
+                    diagnostics(s, sourceName(sourceCode) + " / " + record.getSampleRate() + " Hz / "
+                        + (isPrivate(record, sourceCode) ? "PRIVATE" : "DEFAULT"));
+                    state(s, attempt == 0 ? "STARTING" : "RETRYING", "Listening for microphone samples...", label);
+                    boolean finished = read(s, record, label, attempt < sources.length);
+                    if (finished || s.cancelled) return;
                     failure = "Digital silence. Check mic privacy / input.";
                 } catch (SecurityException denied) {
                     state(s, "PERMISSION", "Microphone permission is required.", ""); return;
@@ -115,6 +130,7 @@ final class AudioEngine {
                         try { record.release(); } catch (RuntimeException ignored) { }
                     }
                 }
+                if (!s.cancelled) Thread.sleep(100);
             }
             state(s, failure.startsWith("Digital") ? "NO SIGNAL" : "MIC ERROR", failure, "");
         } catch (InterruptedException stopped) {
@@ -129,10 +145,12 @@ final class AudioEngine {
         if (mode == 1) return new int[]{MediaRecorder.AudioSource.UNPROCESSED};
         if (mode == 2) return new int[]{MediaRecorder.AudioSource.VOICE_RECOGNITION};
         if (mode == 3) return new int[]{MediaRecorder.AudioSource.MIC};
+        if (mode == 5) return new int[]{MediaRecorder.AudioSource.CAMCORDER};
         boolean raw = false;
         try { raw = manager != null && "true".equalsIgnoreCase(manager.getProperty(AudioManager.PROPERTY_SUPPORT_AUDIO_SOURCE_UNPROCESSED)); }
         catch (RuntimeException ignored) { }
-        return raw ? new int[]{9, 6, 1, 0} : new int[]{6, 1, 0};
+        // Standard MIC first for vendor compatibility; all API 30+ candidates request private capture.
+        return raw ? new int[]{1, 6, 9, 5, 0} : new int[]{1, 6, 5, 0};
     }
 
     private AudioRecord open(Session s, int sourceCode) {
@@ -142,8 +160,12 @@ final class AudioEngine {
             try {
                 int minimum = AudioRecord.getMinBufferSize(rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
                 if (minimum <= 0) continue;
-                record = new AudioRecord(sourceCode, rate, AudioFormat.CHANNEL_IN_MONO,
-                    AudioFormat.ENCODING_PCM_16BIT, Math.max(minimum * 4, SpectrumAnalyzer.HOP * 8));
+                AudioFormat format = new AudioFormat.Builder().setSampleRate(rate)
+                    .setChannelMask(AudioFormat.CHANNEL_IN_MONO).setEncoding(AudioFormat.ENCODING_PCM_16BIT).build();
+                AudioRecord.Builder builder = new AudioRecord.Builder().setAudioSource(sourceCode)
+                    .setAudioFormat(format).setBufferSizeInBytes(Math.max(minimum * 4, SpectrumAnalyzer.HOP * 8));
+                if (Build.VERSION.SDK_INT >= 30) builder.setPrivacySensitive(true);
+                record = builder.build();
                 if (record.getState() != AudioRecord.STATE_INITIALIZED) { record.release(); continue; }
                 preferBuiltIn(record);
                 record.startRecording();
@@ -166,35 +188,73 @@ final class AudioEngine {
         } catch (RuntimeException ignored) { }
     }
 
-    private boolean read(final Session s, final AudioRecord record, final String label) throws InterruptedException {
-        final SpectrumAnalyzer analyzer = new SpectrumAnalyzer(record.getSampleRate());
+    private boolean read(final Session s, final AudioRecord record, final String label, boolean canSwitch) throws InterruptedException {
+        SpectrumAnalyzer analyzer = new SpectrumAnalyzer(record.getSampleRate());
         final short[] buffer = new short[SpectrumAnalyzer.HOP];
         long started = SystemClock.elapsedRealtime(), lastData = started, lastNonzero = started;
-        boolean signal = false;
+        long blockedSince = 0;
+        boolean signal = false, discardWindow = false;
         while (!s.cancelled) {
             int count = record.read(buffer, 0, buffer.length, AudioRecord.READ_NON_BLOCKING);
             long now = SystemClock.elapsedRealtime();
             if (count < 0) throw new IllegalStateException("AudioRecord read: " + count);
+            boolean silenced = isSilenced(record), muted = isSystemMuted();
+            if (silenced || muted) {
+                // Discard any queued PCM, even if it is nonzero. Do not show it as a current measurement.
+                if (blockedSince == 0) blockedSince = now;
+                discardWindow = true; signal = false; lastData = now;
+                state(s, muted ? "MIC MUTED" : "MIC BUSY", muted
+                    ? "Microphone is muted in system settings." : busyDetail(), label);
+                if (!muted && canSwitch && now - blockedSince >= 800) return false;
+                Thread.sleep(20); continue;
+            }
+            if (discardWindow) {
+                analyzer = new SpectrumAnalyzer(record.getSampleRate());
+                discardWindow = false; blockedSince = 0; lastNonzero = started = lastData = now;
+                state(s, "STARTING", "Microphone recovered. Rebuilding spectrum...", label);
+            }
             if (count == 0) {
                 if (now - lastData > 2000) throw new IllegalStateException("AudioRecord stalled");
                 Thread.sleep(6); continue;
             }
             lastData = now;
             for (int i = 0; i < count; i++) if (buffer[i] != 0) { lastNonzero = now; signal = true; break; }
-            if (!signal && now - started > 1800) return false;
-            final boolean silent = now - lastNonzero > 2500;
-            final boolean silenced = isSilenced(record);
+            if ((!signal && now - started > 1800) || (signal && now - lastNonzero > 2500)) {
+                state(s, "NO SIGNAL", "Digital silence. Check mic privacy / input.", label);
+                if (canSwitch) return false;
+                // Stay on the last candidate so releasing another app can recover without a tap.
+                analyzer = new SpectrumAnalyzer(record.getSampleRate());
+                signal = false; lastNonzero = started = now;
+            }
             if (s.resetPeaks) { analyzer.resetPeaks(); s.resetPeaks = false; }
             // A zero-only stream is never advertised as a successful live measurement.
             final boolean hasSignal = signal;
             analyzer.accept(buffer, count, new SpectrumAnalyzer.Listener() {
                 @Override public void onFrame(SpectrumFrame frame) {
-                    if (hasSignal) publish(s, frame, label, silent, silenced);
-                    else if (silenced) state(s, "MIC BUSY", "Android has silenced this microphone.", label);
+                    if (hasSignal) publish(s, frame, label);
                 }
             });
         }
-        return signal;
+        return true;
+    }
+
+    private boolean isPrivate(AudioRecord record, int sourceCode) {
+        if (Build.VERSION.SDK_INT >= 30) {
+            try { return record.isPrivacySensitive(); } catch (RuntimeException ignored) { }
+        }
+        return sourceCode == MediaRecorder.AudioSource.CAMCORDER;
+    }
+
+    private boolean isSystemMuted() {
+        try { return manager != null && manager.isMicrophoneMute(); } catch (RuntimeException ignored) { return false; }
+    }
+
+    private String busyDetail() {
+        try {
+            if (manager != null && (manager.getMode() == AudioManager.MODE_IN_CALL
+                || manager.getMode() == AudioManager.MODE_IN_COMMUNICATION)) return "Call / communication is using the mic.";
+        } catch (RuntimeException ignored) { }
+        return "Android input policy is muting the mic.";
     }
 
     private boolean isSilenced(AudioRecord record) {
@@ -217,10 +277,11 @@ final class AudioEngine {
 
     private String sourceName(int source) {
         switch (source) {
-            case 9: return "MIC / RAW REQUESTED";
-            case 6: return "MIC / VOICE RECOGNITION";
-            case 1: return "MIC / STANDARD";
-            default: return "MIC / DEFAULT";
+            case 9: return "RAW";
+            case 6: return "VOICE";
+            case 1: return "MIC";
+            case 5: return "CAM";
+            default: return "DEFAULT";
         }
     }
 
@@ -239,7 +300,7 @@ final class AudioEngine {
             }
             if (s.resetPeaks) { analyzer.resetPeaks(); s.resetPeaks = false; }
             analyzer.accept(data, data.length, new SpectrumAnalyzer.Listener() {
-                @Override public void onFrame(SpectrumFrame f) { publish(s, f, "DEMO / GENERATED", false, false); }
+                @Override public void onFrame(SpectrumFrame f) { publish(s, f, "DEMO / GENERATED"); }
             });
             next += 43;
             Thread.sleep(Math.max(1, next - SystemClock.elapsedRealtime()));

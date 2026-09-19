@@ -1,0 +1,2 @@
+PASS shared-code rendering / 14 UI states / 228 text bounds checks / 480x400 and 480x640
+Executed directly with Java2D; Android/Rokid rendering is not claimed.

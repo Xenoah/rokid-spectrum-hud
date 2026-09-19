@@ -1,1 +1,1 @@
-edba4b5e44654405e5c2703421078b11b9e26ede0427dfc5bed1717be91b8e0f  RokidSpectrum-1.0.0.apk
+e4b617dd87dbf2c65ed45f0316b2c331e5fe09203e1dfcdf2f73549e2ad60995  RokidSpectrum-1.0.1.apk

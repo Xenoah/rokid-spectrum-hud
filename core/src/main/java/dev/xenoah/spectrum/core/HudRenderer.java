@@ -60,14 +60,17 @@ public final class HudRenderer {
             s.text("Allow microphone access to analyze sound.", 24, 185, 15, 220, false);
             s.text("Tap to request permission / open settings.", 24, 211, 15, 220, false);
             s.text("No audio is saved or sent.", 24, 253, 14, 170, false);
-        } else if (h.status.equals("MIC ERROR") || h.status.equals("NO SIGNAL") || h.status.equals("MIC BUSY")) {
+        } else if (h.status.equals("MIC ERROR") || h.status.equals("NO SIGNAL") || h.status.equals("MIC BUSY") || h.status.equals("MIC MUTED")) {
             s.text(h.detail, 24, 184, 14, 220, false);
             s.text("Tap to retry. BACK opens input settings.", 24, 213, 15, 220, false);
-            s.text("Try INPUT: MIC or VOICE if AUTO fails.", 24, 251, 14, 170, false);
-            s.text("DEMO checks the display without a mic.", 24, 279, 14, 170, false);
+            s.text(h.status.equals("MIC MUTED") ? "Enable the mic in your device settings." : "Close voice / video recording apps.", 24, 249, 14, 200, false);
+            s.text("AUTO retries. INPUT: CAM is also available.", 24, 275, 14, 170, false);
+            s.text(h.diagnostic, 24, 308, 13, 220, false);
+            s.text("v1.0.1 / BACK > HELP for input details", 24, 337, 12, 170, false);
         } else {
             s.text(h.detail, 24, 191, 15, 220, false);
             s.text("Sound is processed on this device only.", 24, 236, 14, 170, false);
+            s.text(h.diagnostic, 24, 280, 13, 180, false);
         }
     }
 
@@ -159,7 +162,7 @@ public final class HudRenderer {
     }
 
     private void help(Surface s, HudState h) {
-        title(s, "HELP / INPUT", "v1.0.0");
+        title(s, "HELP / INPUT", "v1.0.1");
         String[] lines = {
             "Tap: hold / resume microphone",
             "Swipe: spectrum / waterfall / waveform",

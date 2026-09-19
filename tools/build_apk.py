@@ -64,7 +64,7 @@ def main():
         if p.returncode: raise SystemExit("Signing key creation failed")
         KEY.chmod(0o600)
     os.environ["SPECTRUM_SIGNING_PASSWORD"] = PASSWORD
-    apk = DIST / "RokidSpectrum-1.0.0.apk"
+    apk = DIST / "RokidSpectrum-1.0.1.apk"
     run("java", "-jar", TOOLS / "lib" / "apksigner.jar", "sign", "--ks", KEY, "--ks-key-alias", "rokid-spectrum",
         "--ks-pass", "env:SPECTRUM_SIGNING_PASSWORD", "--key-pass", "env:SPECTRUM_SIGNING_PASSWORD",
         "--v1-signing-enabled", "true", "--v2-signing-enabled", "true", "--v3-signing-enabled", "true", "--v4-signing-enabled", "false",
